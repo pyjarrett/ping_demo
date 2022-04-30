@@ -1,9 +1,17 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
 
+with Networking.ICMP;
+with Networking.Sockets;
+
 procedure Ping_Clone is
 begin
    for Index in 1 .. Ada.Command_Line.Argument_Count loop
-      Ada.Text_IO.Put_Line(Ada.Command_Line.Argument(Index));
+      declare
+         Host : constant String := Ada.Command_Line.Argument(Index);
+      begin
+         Ada.Text_IO.Put_Line(Host);
+         Networking.ICMP.Ping(Host);
+      end;
    end loop;
 end Ping_Clone;
