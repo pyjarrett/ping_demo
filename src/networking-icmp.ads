@@ -1,7 +1,5 @@
 with Interfaces.C.Strings;
 with Ada.Unchecked_Conversion;
-with System.Address_To_Access_Conversions;
-with System.Storage_Elements;
 
 package Networking.ICMP is
     

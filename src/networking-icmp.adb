@@ -1,14 +1,16 @@
+with Ada.Characters.Latin_1;
 with Ada.Text_IO;
 with Interfaces;
+with System.Address_Image;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
 package body Networking.ICMP is
+    package TIO renames Ada.Text_IO;
+
+    subtype chars_ptr is Interfaces.C.Strings.chars_ptr;
     subtype int is Interfaces.C.int;
     use type int;
-
-    subtype socklen_t is int;
-    subtype Socket_Type is int;
 
     -- /*
     --  * Types
@@ -20,6 +22,7 @@ package body Networking.ICMP is
     -- #define SOCK_RDM        4               /* reliably-delivered message */
     -- #endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
     -- #define SOCK_SEQPACKET  5               /* sequenced packet stream */
+    subtype Socket_Type is int;
     SOCK_RAW : constant Socket_Type := 3;
 
     -- /usr/include/sys/sockets.h
@@ -28,24 +31,49 @@ package body Networking.ICMP is
     -- 	sa_family_t     sa_family;      /* [XSI] address family */
     -- 	char            sa_data[14];    /* [XSI] addr value (actually larger) */
     -- };
-    subtype sockaddr_ptr is System.Storage_Elements.Integer_Address;
-
+    --
     -- /usr/include/sys/_types/_sa_family_t.h
     -- typedef __uint8_t               sa_family_t;
-
-    subtype addrinfo_ptr is System.Storage_Elements.Integer_Address;
-    type ai_flags_t is mod 2 ** Interfaces.C.int'Size;
-
-    type sa_data_t is array (Natural range 0 .. 14) of Character with Convention => C;
-
+    type sa_data_t is array (Natural range 0 .. 13) of Character with Convention => C;
     type sockaddr is record
         sa_len    : Interfaces.Unsigned_8;
         sa_family : Interfaces.Unsigned_8;
         sa_data   : sa_data_t;
     end record;
 
+    package Socket_Address_Conversions is new System.Address_To_Access_Conversions(sockaddr);
+    subtype sockaddr_ptr is Socket_Address_Conversions.Object_Pointer;
+    pragma Assert(sockaddr_ptr'Size = 64);
+
+    function Image (Ptr : Socket_Address_Conversions.Object_Pointer) return String
+    is
+        use Ada.Characters.Latin_1;
+        Data : constant sa_data_t := Ptr.sa_data;
+    begin
+        return Interfaces.Unsigned_8'Image (Ptr.sa_len) & LF
+            & Interfaces.Unsigned_8'Image (Ptr.sa_family) & LF
+            & Data (0)'Image
+            & Data (1)'Image
+            & Data (2)'Image
+            & Data (3)'Image
+            & Data (4)'Image
+            & Data (5)'Image
+            & Data (6)'Image
+            & Data (7)'Image
+            & Data (8)'Image
+            & Data (9)'Image
+            & Data (10)'Image
+            & Data (11)'Image
+            & Data (12)'Image
+            & Data (13)'Image;
+    end Image;
+
+    subtype addrinfo_ptr is System.Storage_Elements.Integer_Address;
+    type ai_flags_t is mod 2 ** int'Size;
+
     -- /usr/include/sys/_types/_socklen_t.h
     -- typedef __darwin_socklen_t      socklen_t;
+    subtype socklen_t is int;
 
     -- /usr/include/arm/_types.h
     -- typedef __uint32_t              __darwin_socklen_t;     /* socklen_t (duh) */
@@ -63,39 +91,68 @@ package body Networking.ICMP is
     -- 	struct	addrinfo *ai_next;	/* next structure in linked list */
     -- };
     type addrinfo is record
-        ai_flags     : Interfaces.C.int := 0;    -- AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
-	    ai_family    : ai_flags_t := 0;        -- PF_xxx
-	 	ai_socktype  : Socket_Type := 0; -- SOCK_xxx
-        ai_protocol  : Interfaces.C.int := 0; -- /* 0 or IPPROTO_xxx for IPv4 and IPv6 */
-        ai_addrlen   : socklen_t := 0; --	length of ai_addr */
-        ai_canonname : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;	-- canonical name for hostname */
-        ai_addr      : sockaddr_ptr := 0;	-- binary address */
-        ai_next      : addrinfo_ptr := 0;	-- next structure in linked list */
+        ai_flags     : int          := 0;
+	    ai_family    : ai_flags_t   := 0;
+	 	ai_socktype  : Socket_Type  := 0;
+        ai_protocol  : int          := 0;
+        ai_addrlen   : socklen_t    := 0;
+        ai_canonname : chars_ptr    := Interfaces.C.Strings.Null_Ptr;
+        ai_addr      : System.Address := System.Null_Address;
+        ai_next      : System.Address := System.Null_Address;
     end record
-        with Pack, Convention => C;
+        with Convention => C;
 
-    -- TODO: Set these values.
+    function Image (Address : System.Address) return String is (System.Address_Image (Address));
+    function Image (Self : addrinfo) return String is
+        use Ada.Characters.Latin_1;
+    begin
+        return int'Image (Self.ai_flags) & LF
+            & " family:   " & ai_flags_t'Image (Self.ai_family) & LF
+            & " socktype: " & Socket_Type'Image (Self.ai_socktype) & LF
+            & " protocol: " & int'Image (Self.ai_protocol) & LF
+            & " addrlen:  " & socklen_t'Image (Self.ai_addrlen) & LF
+            & " address:  " & Image (Self.ai_addr) & LF
+            & " next:     " & Image (Self.ai_next);
+    end Image;
+
+    -- /usr/include/sys/socket.h
+    -- #define AF_UNSPEC       0               /* unspecified */
+    -- #define AF_UNIX         1               /* local to host (pipes) */
+    -- #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
+    -- #define AF_LOCAL        AF_UNIX         /* backward compatibility */
     AF_UNSPEC : constant ai_flags_t := 0;
-    IPPROTO_ICMP : constant int := 0;
 
-    AI_PASSIVE : constant := 16#00000001#;
+    -- /usr/include/netinet/in.h
+    -- #define IPPROTO_IP              0               /* dummy for IP */
+    -- #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
+    -- #define IPPROTO_HOPOPTS 0               /* IP6 hop-by-hop options */
+    -- #endif  /* (!_POSIX_C_SOURCE || _DARWIN_C_SOURCE) */
+    -- #define IPPROTO_ICMP            1               /* control message protocol */
+    IPPROTO_IP   : constant int := 0;
+    IPPROTO_ICMP : constant int := 1;
+
+    -- #define	AI_PASSIVE	0x00000001 /* get address to use bind() */
+    -- #define	AI_CANONNAME	0x00000002 /* fill ai_canonname */
+    -- #define	AI_NUMERICHOST	0x00000004 /* prevent host name resolution */
+    -- #define	AI_NUMERICSERV	0x00001000 /* prevent service name resolution */
+    AI_PASSIVE   : constant := 16#00000001#;
     AI_CANONNAME : constant := 16#00000002#;
 
-    function Make_Hint_ICMP_V4
-        return addrinfo
-    is
+    function Make_Hint_ICMP_V4 return addrinfo is
     begin
-        return Result : addrinfo do
-            Result.ai_family   := AF_UNSPEC;
-            Result.ai_socktype := SOCK_RAW;
-            Result.ai_protocol := IPPROTO_ICMP; -- or IPPROTO_ICMPV6
-        end return;
+        return (
+            ai_family   => AF_UNSPEC,
+            ai_socktype => SOCK_RAW,
+            ai_protocol => IPPROTO_ICMP, -- or IPPROTO_ICMPV6
+            others      => <>
+        );
     end Make_Hint_ICMP_V4;
 
-    -- int		getaddrinfo(const char * __restrict,
-    --              const char * __restrict,
-    -- 			    const struct addrinfo * __restrict,
-    -- 			    struct addrinfo ** __restrict);
+    --  int getaddrinfo(
+    --      const char *hostname,
+    --      const char *servname,
+    --      const struct addrinfo *hints,
+    --      struct addrinfo **res);
     -- getaddrinfo(target, nullptr, &hints, &m_alternatives);
     function getaddrinfo(
         Target : Interfaces.C.Strings.chars_ptr;
@@ -133,7 +190,7 @@ package body Networking.ICMP is
     --             socklen_t address_len);
     function connect (
         Socket         : Socket_Descriptor;
-        Address        : sockaddr_ptr;
+        Address        : System.Address;
         Address_Length : socklen_t
     ) return Connect_Status
         with Import, Convention => C;
@@ -149,64 +206,75 @@ package body Networking.ICMP is
         Unused := close (File_Descriptor);
     end close;
 
-    -- __BEGIN_DECLS
-    -- extern int * __error(void);
-    -- #define errno (*__error())
-    -- __END_DECLS
-    function errno return Interfaces.Integer_64
-        with Import, Convention => C, External_Name => "__error";
+    function Get_Errno_String return String
+    is
+        -- __BEGIN_DECLS
+        -- extern int * __error(void);
+        -- #define errno (*__error())
+        -- __END_DECLS
+        function errno return System.Address
+            with Import, Convention => C, External_Name => "__error";
+
+        --  char* strerror(int errnum);
+        function strerror (errnum : int) return Interfaces.C.Strings.chars_ptr
+            with Import, Convention => C;
+
+        package Int_Conversions is new System.Address_To_Access_Conversions(int);
+        Errno_Address : constant System.Address := errno;
+        Errno_Ptr     : constant access int := Int_Conversions.To_Pointer (Errno_Address);
+        Errno_Str     : constant String := Interfaces.C.Strings.Value (strerror (Errno_Ptr.all));
+    begin
+        return Errno_Str;
+    end Get_Errno_String;
 
     -- Pings a host, reporting status to the user.
     procedure Ping(Host : String)
     is
-        Host_CStr : aliased Interfaces.C.char_array := Interfaces.C.To_C (host);
-        Hints : constant addrinfo := Make_Hint_ICMP_V4;
-        Address_Infos : System.Address;
-        use type Interfaces.C.int;
-        use type Interfaces.C.Strings.chars_ptr;
+        Host_CStr     : aliased Interfaces.C.char_array := Interfaces.C.To_C (host);
+        Hints         : constant addrinfo := Make_Hint_ICMP_V4;
 
+        use type Interfaces.C.Strings.chars_ptr;
         package Addrinfo_Conversions is new System.Address_To_Access_Conversions (Object => addrinfo);
 
-        addr_info_access : access addrinfo := null;
+        Address_Infos : Addrinfo_Conversions.Object_Pointer := null;
+        Success : constant := 0;
     begin
         -- Gets the address to look up.
         if getaddrinfo (
             Interfaces.C.Strings.To_Chars_Ptr (Host_CStr'Unchecked_Access),
             Interfaces.C.Strings.Null_Ptr,
             System.Storage_Elements.To_Integer (Hints'Address),
-            Address_Infos'Address) /= 0
+            Address_Infos'Address) /= Success
         then
             -- TODO: Write to STDERR
             Ada.Text_IO.Put_Line ("Unable to find address to look up");
             return;
         end if;
 
-        addr_info_access := Addrinfo_Conversions.To_Pointer (Address_Infos);
-        Ada.Text_IO.Put_Line (Interfaces.C.int'Image(addr_info_access.all.ai_addrlen));
-
-        if addr_info_access.ai_canonname = Interfaces.C.Strings.Null_Ptr then
+        if Address_Infos.ai_canonname = Interfaces.C.Strings.Null_Ptr then
             Ada.Text_IO.Put_Line ("Null canonical name string");
         end if;
 
         declare
             Client_Socket : Socket_Descriptor := socket (
-                int(addr_info_access.ai_family),
-                addr_info_access.ai_socktype,
-                addr_info_access.ai_protocol
+                int(Address_Infos.ai_family),
+                Address_Infos.ai_socktype,
+                Address_Infos.ai_protocol
             );
             Connect_Result : Connect_Status;
         begin
             if Client_Socket = Invalid_Socket then
                 Ada.Text_IO.Put_Line ("Unable to create socket.");
-                Ada.Text_IO.Put_Line (Interfaces.Integer_64'image(errno));
+                Ada.Text_IO.Put_Line (Get_Errno_String);
                 return;
             else
                 Ada.Text_IO.Put_Line ("Created the send socket.");
             end if;
 
-            Connect_Result := connect (Client_Socket, addr_info_access.ai_addr, addr_info_access.ai_addrlen);
+            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
             if Connect_Result /= Connect_Success then
                 Ada.Text_IO.Put_Line ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
+                Ada.Text_IO.Put_Line ("Socket Error: " & Get_Errno_String);
                 close (Client_Socket);
                 Client_Socket := Invalid_Socket;
                 return;
@@ -247,11 +315,8 @@ package body Networking.ICMP is
     -- #endif
         -- }
 
-
         Ada.Text_IO.Put_Line ("Pinging: " & Host);
         Ada.Text_IO.Put_Line (Integer'Image(Hints'Size));
-
-
     end Ping;
 
 end Networking.ICMP;
