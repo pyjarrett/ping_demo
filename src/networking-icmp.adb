@@ -10,11 +10,6 @@ package body Networking.ICMP is
 
     package TIO renames Ada.Text_IO;
 
-    subtype chars_ptr is Interfaces.C.Strings.chars_ptr;
-    subtype int is Interfaces.C.int;
-    use type int;
-    subtype Void_Ptr is System.Address;
-    type ssize_t is mod 2 ** Interfaces.C.size_t'size;
 
     -- /*
     --  * Types
@@ -226,28 +221,6 @@ package body Networking.ICMP is
     ) return ssize_t
         with Import, Convention => C;
 
-
-    function Get_Errno_String return String
-    is
-        -- __BEGIN_DECLS
-        -- extern int * __error(void);
-        -- #define errno (*__error())
-        -- __END_DECLS
-        function errno return System.Address
-            with Import, Convention => C, External_Name => "__error";
-
-        --  char* strerror(int errnum);
-        function strerror (errnum : int) return Interfaces.C.Strings.chars_ptr
-            with Import, Convention => C;
-
-        package Int_Conversions is new System.Address_To_Access_Conversions(int);
-        Errno_Address : constant System.Address := errno;
-        Errno_Ptr     : constant access int := Int_Conversions.To_Pointer (Errno_Address);
-        Errno_Str     : constant String := Interfaces.C.Strings.Value (strerror (Errno_Ptr.all));
-    begin
-        return Errno_Str;
-    end Get_Errno_String;
-
     type Echo_Request_Data_Size is new Integer range 0 .. 4096;
     type Echo_Request_Data is array (Echo_Request_Data_Size range <>) of Interfaces.Unsigned_8
         with Convention => C;
@@ -269,10 +242,9 @@ package body Networking.ICMP is
     -- static_assert(sizeof(EchoRequest) == 8, "ICMPv4 packet is incorrect size.");
 
     procedure Test_Sizes is
-        Empty : Echo_Request;
+        Empty : Echo_Request_Header;
     begin
         TIO.Put_Line (Interfaces.Integer_64'Image (Empty'Size));
-        TIO.Put_Line (Interfaces.Integer_64'Image (Empty.Data'Position));
         pragma Assert (Empty'Size = 64);
     end Test_Sizes;
 
@@ -333,12 +305,13 @@ package body Networking.ICMP is
 
 
             declare
-                Request     : Echo_Request;
-                Data        : Void_Ptr;
-                Data_Length : Interfaces.C.size_t := 0;
-                Flags       : int := 0;
+                Request     : Echo_Request_Header;
+                Data        : constant Void_Ptr := System.Null_Address;
+                Data_Length : constant Interfaces.C.size_t := 0;
+                Flags       : constant int := 0;
                 Send_Result : constant Send_Status := send (Client_Socket, Data, Data_Length, Flags);
             begin
+                pragma Unreferenced (Data);
                 if Send_Result = Send_Error then
                     null;
                     TIO.Put_Line ("Unable to send.");

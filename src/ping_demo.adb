@@ -4,7 +4,7 @@ with Ada.Text_IO;
 with Networking.ICMP;
 with Networking.Sockets;
 
-procedure Ping_Clone is
+procedure Ping_Demo is
 begin
    for Index in 1 .. Ada.Command_Line.Argument_Count loop
       declare
@@ -14,4 +14,4 @@ begin
          Networking.ICMP.Ping(Host);
       end;
    end loop;
-end Ping_Clone;
+end Ping_Demo;
