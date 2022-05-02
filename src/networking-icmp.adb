@@ -6,11 +6,15 @@ with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
 package body Networking.ICMP is
+    pragma Assertion_Policy(Check);
+
     package TIO renames Ada.Text_IO;
 
     subtype chars_ptr is Interfaces.C.Strings.chars_ptr;
     subtype int is Interfaces.C.int;
     use type int;
+    subtype Void_Ptr is System.Address;
+    type ssize_t is mod 2 ** Interfaces.C.size_t'size;
 
     -- /*
     --  * Types
@@ -185,6 +189,10 @@ package body Networking.ICMP is
     Connect_Error   : constant Connect_Status := -1;
     Connect_Success : constant Connect_Status := 0;
 
+    subtype Send_Status is ssize_t;
+    Send_Error   : constant Send_Status := -1;
+    Send_Success : constant Send_Status := 0;
+
     -- int connect(int socket,
     --             const struct sockaddr *address,
     --             socklen_t address_len);
@@ -205,6 +213,19 @@ package body Networking.ICMP is
         pragma Unreferenced (Unused);
         Unused := close (File_Descriptor);
     end close;
+
+
+    -- #include <sys/socket.h>
+    -- ssize_t
+    -- send(int socket, const void *buffer, size_t length, int flags);
+    function send (
+        Socket : Socket_Descriptor;
+        Buffer : Void_Ptr;
+        Length : Interfaces.C.size_t;
+        Flags  : int
+    ) return ssize_t
+        with Import, Convention => C;
+
 
     function Get_Errno_String return String
     is
@@ -227,6 +248,34 @@ package body Networking.ICMP is
         return Errno_Str;
     end Get_Errno_String;
 
+    type Echo_Request_Data_Size is new Integer range 0 .. 4096;
+    type Echo_Request_Data is array (Echo_Request_Data_Size range <>) of Interfaces.Unsigned_8
+        with Convention => C;
+
+    -- [ICMP](https://datatracker.ietf.org/doc/html/rfc792)
+    type Echo_Request_Header is record
+        Request_Type : Interfaces.Integer_8 := 8; -- Echo Reply
+        Code         : Interfaces.Integer_8 := 8;
+
+	    -- "The checksum is the 16-bit one's complement of the one's
+	    -- complement sum of the ICMP message starting with the ICMP Type."
+	    -- - RFC 792
+        Checksum     : Interfaces.Unsigned_16 := 0;
+        Identifier   : Interfaces.Unsigned_16 := 0;
+        Sequence_Num : Interfaces.Unsigned_16 := 0;
+    end record
+        with Convention => C;
+
+    -- static_assert(sizeof(EchoRequest) == 8, "ICMPv4 packet is incorrect size.");
+
+    procedure Test_Sizes is
+        Empty : Echo_Request;
+    begin
+        TIO.Put_Line (Interfaces.Integer_64'Image (Empty'Size));
+        TIO.Put_Line (Interfaces.Integer_64'Image (Empty.Data'Position));
+        pragma Assert (Empty'Size = 64);
+    end Test_Sizes;
+
     -- Pings a host, reporting status to the user.
     procedure Ping(Host : String)
     is
@@ -239,6 +288,8 @@ package body Networking.ICMP is
         Address_Infos : Addrinfo_Conversions.Object_Pointer := null;
         Success : constant := 0;
     begin
+        Test_Sizes;
+
         -- Gets the address to look up.
         if getaddrinfo (
             Interfaces.C.Strings.To_Chars_Ptr (Host_CStr'Unchecked_Access),
@@ -279,7 +330,24 @@ package body Networking.ICMP is
                 Client_Socket := Invalid_Socket;
                 return;
             end if;
+
+
+            declare
+                Request     : Echo_Request;
+                Data        : Void_Ptr;
+                Data_Length : Interfaces.C.size_t := 0;
+                Flags       : int := 0;
+                Send_Result : constant Send_Status := send (Client_Socket, Data, Data_Length, Flags);
+            begin
+                if Send_Result = Send_Error then
+                    null;
+                    TIO.Put_Line ("Unable to send.");
+                else
+                    TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
+                end if;
+            end;
         end;
+
 
     --     EchoRequest echoRequest(1, 1);
     --     int sendResult = send(clientSocket, reinterpret_cast<char*>(&echoRequest), sizeof(echoRequest), 0);

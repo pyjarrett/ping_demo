@@ -1,9 +1,9 @@
-name = "ping_clone"
-description = "Shiny new project"
-version = "0.0.0"
+name = "ping_demo"
+description = "Demo program to show how to write a simple ping program."
+version = "0.0.1"
 
 authors = ["Paul Jarrett"]
 maintainers = ["Paul Jarrett <jarrett.paul.young@gmail.com>"]
 maintainers-logins = ["pyjarrett"]
 
-executables = ["ping_clone"]
+executables = ["ping_demo"]
