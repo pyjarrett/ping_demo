@@ -1,7 +1,5 @@
-with Ada.Characters.Latin_1;
 with Ada.Text_IO;
 with Interfaces;
-with System.Address_Image;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
@@ -45,11 +43,10 @@ package body Networking.ICMP is
     end record
         with Convention => C;
 
-    -- static_assert(sizeof(EchoRequest) == 8, "ICMPv4 packet is incorrect size.");
-
     procedure Test_Sizes is
         Empty : Echo_Request_Header;
     begin
+        -- static_assert(sizeof(EchoRequest) == 8, "ICMPv4 packet is incorrect size.");
         TIO.Put_Line (Interfaces.Integer_64'Image (Empty'Size));
         pragma Assert (Empty'Size = 64);
     end Test_Sizes;
@@ -109,7 +106,6 @@ package body Networking.ICMP is
                 return;
             end if;
 
-
             declare
                 use System.Storage_Elements;
                 use type System.Storage_Elements.Storage_Offset;
@@ -139,7 +135,8 @@ package body Networking.ICMP is
                 -- Send_Result := send (Client_Socket, Data, Data_Length, Flags);
                 -- if Send_Result = Send_Error then
                 --     null;
-                    TIO.Put_Line ("Unable to send.");
+                    Print_Error ("Unable to send.");
+                    Print_Error ("Are you sending as administrator?");
                 -- else
                 --     TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
                 -- end if;
@@ -149,15 +146,6 @@ package body Networking.ICMP is
 
 
     --     EchoRequest echoRequest(1, 1);
-    --     int sendResult = send(clientSocket, reinterpret_cast<char*>(&echoRequest), sizeof(echoRequest), 0);
-    --     if (sendResult == SOCKET_ERROR) {
-    -- #if _WIN32
-    --         logError() << "Unable to send " << WSAGetLastError() << '\n';
-    -- #elif __APPLE__
-    --         logError() << "Unable to send " << errno << '\n';
-    -- #endif
-    --         logError() << "Are you sending as an administrator?\n";
-            
     -- #if _WIN32
     --         closesocket(clientSocket);
     -- #elif __APPLE__
