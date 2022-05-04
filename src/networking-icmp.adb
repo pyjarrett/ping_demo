@@ -72,8 +72,7 @@ package body Networking.ICMP is
             System.Storage_Elements.To_Integer (Hints'Address),
             Address_Infos'Address) /= Success
         then
-            -- TODO: Write to STDERR
-            TIO.Put_Line ("Unable to find address to look up");
+            Print_Error ("Unable to find address to look up");
             return;
         end if;
 
@@ -99,8 +98,8 @@ package body Networking.ICMP is
 
             Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
             if Connect_Result /= Connect_Success then
-                TIO.Put_Line ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
-                TIO.Put_Line ("Socket Error: " & Get_Errno_String);
+                Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
+                Print_Error ("Socket Error: " & Get_Errno_String);
                 close (Client_Socket);
                 Client_Socket := Invalid_Socket;
                 return;
