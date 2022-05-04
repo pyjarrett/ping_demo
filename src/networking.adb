@@ -1,6 +1,7 @@
 with System.Address_To_Access_Conversions;
 
 package body Networking is
+
     function Get_Errno_String return String
     is
         -- __BEGIN_DECLS
@@ -21,7 +22,5 @@ package body Networking is
     begin
         return Errno_Str;
     end Get_Errno_String;
-
-
 
 end Networking;
