@@ -52,7 +52,7 @@ package body Networking.ICMP is
     end Test_Sizes;
 
     -- Pings a host, reporting status to the user.
-    procedure Ping(Host : String)
+    procedure Ping (Host : String)
     is
         Host_CStr : aliased Interfaces.C.char_array := Interfaces.C.To_C (host);
         Hints     : constant addrinfo := Make_Hint_ICMP_V4;
@@ -105,6 +105,7 @@ package body Networking.ICMP is
                 return;
             end if;
 
+            -- Build the packet, calculate the checksum and send.
             declare
                 use System.Storage_Elements;
                 use type System.Storage_Elements.Storage_Offset;
@@ -143,6 +144,9 @@ package body Networking.ICMP is
         end;
 
 
+            -- Wait for a response.
+            --
+            -- Timeout if no response received.
 
     --     EchoRequest echoRequest(1, 1);
     -- #if _WIN32

@@ -164,7 +164,4 @@ package Networking.Sockets is
     function Image (Self : addrinfo) return String;
     function Image (Ptr : Socket_Address_Conversions.Object_Pointer) return String;
 
-    function Calculate_Checksum (Buffer : System.Storage_Elements.Storage_Array)
-        return Interfaces.Unsigned_16;
-
 end Networking.Sockets;

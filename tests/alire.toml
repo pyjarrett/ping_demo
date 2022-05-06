@@ -1,0 +1,15 @@
+name = "ping_demo_tests"
+description = "Shiny new project"
+version = "0.0.0"
+
+authors = ["Paul Jarrett"]
+maintainers = ["Paul Jarrett <jarrett.paul.young@gmail.com>"]
+maintainers-logins = ["pyjarrett"]
+
+executables = ["ping_demo_tests"]
+[[depends-on]]  # Added by alr
+trendy_test = "~0.0.3"  # Added by alr
+[[depends-on]]  # Added by alr
+ping_demo = "~0.0.1"  # Added by alr
+[[pins]]  # Added by alr
+ping_demo = { path='../../ping_demo' }   # Added by alr

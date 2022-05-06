@@ -22,10 +22,20 @@ package Networking is
     subtype U32 is Interfaces.Unsigned_32;
     subtype U64 is Interfaces.Unsigned_64;
 
+    type U8_Buffer is array (Positive range <>) of U8;
+    type U16_Buffer is array (Positive range <>) of U16;
+
     -- Convenience function for getting errno.
     function Get_Errno_String return String;
 
     -- Convenience function for printing an address.
     function Image (Address : System.Address) return String is (System.Address_Image (Address));
     
+    function Calculate_Checksum (Buffer : System.Storage_Elements.Storage_Array)
+        return U16
+        with Inline;
+    
+    function Calculate_Checksum (Buffer : U8_Buffer)
+        return U16;
+        
 end Networking;

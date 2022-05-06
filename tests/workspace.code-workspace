@@ -5,6 +5,6 @@
 		}
 	],
 	"settings": {
-		"ada.projectFile": "ping_demo.gpr"
+		"ada.projectFile": "ping_demo_tests.gpr"
 	}
 }
