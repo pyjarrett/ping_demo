@@ -78,8 +78,6 @@ package Networking.Sockets is
     end record
         with Convention => C;
 
-
-
     -- from /usr/include/netdb.h
     --
     -- struct addrinfo {

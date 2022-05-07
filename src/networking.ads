@@ -8,6 +8,7 @@ with System.Storage_Elements;
 
 -- src/networking.ads
 
+-- Top level package for dealing with netwokring.
 -- Child packages can use these functions without using a prefix.
 package Networking is
 
