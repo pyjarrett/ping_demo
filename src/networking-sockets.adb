@@ -1,6 +1,8 @@
 with Ada.Characters.Latin_1;
 with Ada.Unchecked_Conversion;
 
+with Networking.Winsock2;
+
 package body Networking.Sockets is
 
    function Image (Self : addrinfo) return String is

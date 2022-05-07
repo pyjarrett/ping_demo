@@ -2,7 +2,6 @@ with Ada.Command_Line;
 with Ada.Text_IO;
 
 with Networking.ICMP;
-with Networking.Sockets;
 
 procedure Ping_Demo is
 begin

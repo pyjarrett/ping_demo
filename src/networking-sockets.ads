@@ -1,7 +1,10 @@
+with Interfaces.C;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
 package Networking.Sockets is
+    use type Interfaces.C.int;
+
     -- /*
     --  * Types
     --  */
@@ -40,10 +43,42 @@ package Networking.Sockets is
 
     -- /usr/include/sys/_types/_socklen_t.h
     -- typedef __darwin_socklen_t      socklen_t;
-    subtype socklen_t is int;
+    -- Mac
+    -- subtype socklen_t is int;
+
+    subtype socklen_t is Interfaces.C.size_t;
 
     -- /usr/include/arm/_types.h
     -- typedef __uint32_t              __darwin_socklen_t;     /* socklen_t (duh) */
+
+    --   C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\shared\ws2def.h  
+    -- //
+    -- //  Structure used in getaddrinfo() call
+    -- //
+    -- typedef struct addrinfo
+    -- {
+    --     int                 ai_flags;       // AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
+    --     int                 ai_family;      // PF_xxx
+    --     int                 ai_socktype;    // SOCK_xxx
+    --     int                 ai_protocol;    // 0 or IPPROTO_xxx for IPv4 and IPv6
+    --     size_t              ai_addrlen;     // Length of ai_addr
+    --     char *              ai_canonname;   // Canonical name for nodename
+    --     _Field_size_bytes_(ai_addrlen) struct sockaddr *   ai_addr;        // Binary address
+    --     struct addrinfo *   ai_next;        // Next structure in linked list
+    -- }
+    type addrinfo is record
+        ai_flags     : int                 := 0;
+	    ai_family    : ai_flags_t          := 0;
+	 	ai_socktype  : Socket_Type         := 0;
+        ai_protocol  : int                 := 0;
+        ai_addrlen   : Interfaces.C.size_t := 0;
+        ai_canonname : chars_ptr           := Interfaces.C.Strings.Null_Ptr;
+        ai_addr      : System.Address      := System.Null_Address;
+        ai_next      : System.Address      := System.Null_Address;
+    end record
+        with Convention => C;
+
+
 
     -- from /usr/include/netdb.h
     --
@@ -57,17 +92,17 @@ package Networking.Sockets is
     -- 	struct	sockaddr *ai_addr;	/* binary address */
     -- 	struct	addrinfo *ai_next;	/* next structure in linked list */
     -- };
-    type addrinfo is record
-        ai_flags     : int          := 0;
-	    ai_family    : ai_flags_t   := 0;
-	 	ai_socktype  : Socket_Type  := 0;
-        ai_protocol  : int          := 0;
-        ai_addrlen   : socklen_t    := 0;
-        ai_canonname : chars_ptr    := Interfaces.C.Strings.Null_Ptr;
-        ai_addr      : System.Address := System.Null_Address;
-        ai_next      : System.Address := System.Null_Address;
-    end record
-        with Convention => C;
+    -- type addrinfo is record
+    --     ai_flags     : int          := 0;
+	--     ai_family    : ai_flags_t   := 0;
+	--  	ai_socktype  : Socket_Type  := 0;
+    --     ai_protocol  : int          := 0;
+    --     ai_addrlen   : socklen_t    := 0;
+    --     ai_canonname : chars_ptr    := Interfaces.C.Strings.Null_Ptr;
+    --     ai_addr      : System.Address := System.Null_Address;
+    --     ai_next      : System.Address := System.Null_Address;
+    -- end record
+    --     with Convention => C;
 
 
     -- /usr/include/sys/socket.h
@@ -104,8 +139,10 @@ package Networking.Sockets is
         Unused : Interfaces.C.Strings.chars_ptr;
         Hints  : addrinfo_ptr;
         Result : System.Address
-    ) return Interfaces.C.Int
-        with Import, Convention => C;
+    ) return Interfaces.C.Int;
+        -- with Import, Convention => C;
+
+    pragma Import (Stdcall, getaddrinfo, "getaddrinfo");
 
     subtype Socket_Descriptor is int;
     Invalid_Socket : constant Socket_Descriptor := -1;
@@ -123,8 +160,10 @@ package Networking.Sockets is
         Communication_Domain    : Protocol_Family;
         Communication_Semantics : Socket_Type;
         Protocol                : int
-    ) return Socket_Descriptor
-        with Import, Convention => C;
+    ) return Socket_Descriptor;
+        -- with Import, Convention => C;
+        
+    pragma Import (Stdcall, socket, "socket");
 
     subtype Connect_Status is int;
     Connect_Error   : constant Connect_Status := -1;

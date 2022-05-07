@@ -13,10 +13,8 @@ package Networking is
 
     subtype chars_ptr is Interfaces.C.Strings.chars_ptr;
     subtype int is Interfaces.C.int;
-    use type int;
     subtype Void_Ptr is System.Address;
     type ssize_t is mod 2 ** Interfaces.C.size_t'size;
-    use type Interfaces.C.size_t;
 
     subtype U8 is Interfaces.Unsigned_8;
     subtype U16 is Interfaces.Unsigned_16;

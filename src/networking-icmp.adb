@@ -26,10 +26,6 @@ package body Networking.ICMP is
         );
     end Make_Hint_ICMP_V4;
 
-    type Echo_Request_Data_Size is new Integer range 0 .. 1024;
-    type Echo_Request_Data is array (Echo_Request_Data_Size range <>) of Interfaces.Unsigned_8
-        with Convention => C;
-
     -- [ICMP](https://datatracker.ietf.org/doc/html/rfc792)
     type Echo_Request_Header is record
         Request_Type : Interfaces.Unsigned_8 := 8; -- Echo Reply
@@ -84,6 +80,9 @@ package body Networking.ICMP is
 
         Address_Infos : Addrinfo_Conversions.Object_Pointer := null;
         Success : constant := 0;
+        
+        use type int;
+        use type Interfaces.C.size_t;
     begin
         Test_Sizes;
 
@@ -95,6 +94,8 @@ package body Networking.ICMP is
             Address_Infos'Address) /= Success
         then
             Print_Error ("Unable to find address to look up");
+            Print_Error (Get_Errno_String);
+            
             return;
         end if;
 
@@ -151,7 +152,6 @@ package body Networking.ICMP is
                 -- Verify the request and payload are where we want.
                 pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
                 pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
-                Request     : Echo_Request_Header;
                 Data        : constant Void_Ptr := Send_Buffer'Address;
                 Flags       : constant int := 0;
                 Send_Result : Send_Status := Send_Error;
@@ -199,36 +199,6 @@ package body Networking.ICMP is
                 end;
             end;
         end;
-
-
-            -- Wait for a response.
-            --
-            -- Timeout if no response received.
-
-    --     EchoRequest echoRequest(1, 1);
-    -- #if _WIN32
-    --         closesocket(clientSocket);
-    -- #elif __APPLE__
-    --         close(clientSocket);
-    -- #endif
-    --         return false;
-    --     }
-    --     logInfo() << "Sent: " << sendResult << " bytes\n";
-
-    --     std::vector<char> buffer;
-    --     buffer.resize(1024);
-    --     int recvResult = recv(clientSocket, buffer.data(), (int)buffer.size(), 0);
-    --     if (recvResult > 0) {
-    --         logInfo() << "Received " << recvResult << " bytes\n";
-    --     } else if (recvResult == 0) {
-    --         logInfo() << "Socket closed\n";
-    --     } else {
-    -- #if _WIN32
-    --         logError() << "Receive failed: " << WSAGetLastError() << '\n';
-    -- #elif __APPLE__
-    --         logError() << "Receive failed: " << errno << '\n';
-    -- #endif
-        -- }
 
         TIO.Put_Line ("Pinging: " & Host);
         TIO.Put_Line (Integer'Image(Hints'Size));
