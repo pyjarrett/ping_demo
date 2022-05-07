@@ -10,6 +10,7 @@ package body Networking.ICMP is
 
     package TIO renames Ada.Text_IO;
 
+    -- Simplify error printing.
     procedure Print_Error (S : String) is
     begin
         TIO.Put_Line (TIO.Standard_Error, S);
@@ -31,8 +32,8 @@ package body Networking.ICMP is
 
     -- [ICMP](https://datatracker.ietf.org/doc/html/rfc792)
     type Echo_Request_Header is record
-        Request_Type : Interfaces.Integer_8 := 8; -- Echo Reply
-        Code         : Interfaces.Integer_8 := 8;
+        Request_Type : Interfaces.Unsigned_8 := 8; -- Echo Reply
+        Code         : Interfaces.Unsigned_8 := 0;
 
 	    -- "The checksum is the 16-bit one's complement of the one's
 	    -- complement sum of the ICMP message starting with the ICMP Type."
@@ -40,8 +41,17 @@ package body Networking.ICMP is
         Checksum     : Interfaces.Unsigned_16 := 0;
         Identifier   : Interfaces.Unsigned_16 := 0;
         Sequence_Num : Interfaces.Unsigned_16 := 0;
-    end record
-        with Convention => C;
+    end record;
+
+    for Echo_Request_Header use record
+        Request_Type at 0 range 0 .. 7;
+        Code         at 1 range 0 .. 7;
+        Checksum     at 2 range 0 .. 15;
+        Identifier   at 4 range 0 .. 15;
+        Sequence_Num at 6 range 0 .. 15;
+    end record;
+    for Echo_Request_Header'Bit_Order use System.High_Order_First;
+    for Echo_Request_Header'Scalar_Storage_Order use System.High_Order_First;
 
     procedure Test_Sizes is
         Empty : Echo_Request_Header;
@@ -51,8 +61,20 @@ package body Networking.ICMP is
         pragma Assert (Empty'Size = 64);
     end Test_Sizes;
 
+    procedure Print_Bytes (Address : System.Address; Num_Bytes : Natural) is
+        type U8_Array is array (Positive range 1 .. Num_Bytes) of Interfaces.Unsigned_8;
+        Bytes : constant U8_Array with Import;
+        for Bytes'Address use Address;
+    begin
+        for Byte of Bytes loop
+            Ada.Text_IO.Put_Line (Byte'Image);
+        end loop;
+    end Print_Bytes;
+    
     -- Pings a host, reporting status to the user.
-    procedure Ping (Host : String)
+    procedure Ping (
+        Host    : String;
+        Payload : String)
     is
         Host_CStr : aliased Interfaces.C.char_array := Interfaces.C.To_C (host);
         Hints     : constant addrinfo := Make_Hint_ICMP_V4;
@@ -112,34 +134,69 @@ package body Networking.ICMP is
                 use type System.Storage_Elements.Integer_Address;
                 use type System.Address;
 
-                Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset := 2048;
-                Send_Buffer : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
-                Echo_Request : Echo_Request_Header with Import;
+                -- Underlying buffer for the send.
+                pragma Warnings(Off, "overlay changes scalar storage order");
+                Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
+                    Echo_Request_Header'Size / 8 + Payload'Length;
+                Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
+
+                -- Map request and payload onto the buffer.
+                Echo_Request     : Echo_Request_Header with Import;
                 for Echo_Request'Address use Send_Buffer'Address;
+                pragma Warnings(On, "overlay changes scalar storage order");
 
-                Echo_Request_Payload : Echo_Request_Data(1 .. 1024) with Import;
-                for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size;
+                Echo_Request_Payload : String (1 .. Payload'Length);
+                for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
 
+                -- Verify the request and payload are where we want.
                 pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
-                pragma Assert(Echo_Request'Address + Echo_Request'Size = Echo_Request_Payload'Address);
+                pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
                 Request     : Echo_Request_Header;
                 Data        : constant Void_Ptr := Send_Buffer'Address;
-                Data_Length : constant Interfaces.C.size_t := 0;
                 Flags       : constant int := 0;
-                Send_Result : constant Send_Status := Send_Error;
+                Send_Result : Send_Status := Send_Error;
             begin
-                -- Set the data
-
-                -- Set the checksum
-
-                -- Send_Result := send (Client_Socket, Data, Data_Length, Flags);
-                -- if Send_Result = Send_Error then
-                --     null;
+                Echo_Request := (Request_Type => 8, Code => 0,
+                  Checksum => 0, 
+                  Identifier => 1,
+                  Sequence_Num => 1);
+                Print_Bytes (Echo_Request'Address, Echo_Request'Size / 8);
+                TIO.New_Line;
+                Echo_Request_Payload := Payload;
+                Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
+                Print_Bytes (Echo_Request'Address, Echo_Request'Size / 8);
+                Send_Result := send (Client_Socket, Data, Interfaces.C.size_t (Send_Buffer_Size), Flags);
+                if Send_Result = Send_Error then
                     Print_Error ("Unable to send.");
                     Print_Error ("Are you sending as administrator?");
-                -- else
-                --     TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
-                -- end if;
+                else
+                    TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
+                end if;
+
+                declare
+                    pragma Warnings(Off, "overlay changes scalar storage order");
+                    Recv_Buffer_Size : constant := 1024;
+                    Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
+                    Echo_Receipt : Echo_request_Header with Import;
+                    for Echo_Receipt'Address use Recv_Buffer'Address;
+                    pragma Warnings(On, "overlay changes scalar storage order");
+                    Recv_Result : ssize_t;
+                begin
+                    Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
+                    if Recv_Result > 0 then
+                        declare
+                            Echo_Payload : String (1 ..
+                                Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
+                            for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
+                        begin
+                            TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
+                        end;
+                    elsif Recv_Result = 0 then
+                        TIO.Put_Line ("Socket closed");
+                    else
+                        TIO.Put_Line ("Socket error: " & Recv_Result'Image);
+                    end if;
+                end;
             end;
         end;
 

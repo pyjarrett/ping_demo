@@ -161,6 +161,18 @@ package Networking.Sockets is
     ) return ssize_t
         with Import, Convention => C;
 
+
+    -- #include <sys/socket.h>
+    -- ssize_t
+    -- recv(int socket, void *buffer, size_t length, int flags);
+    function recv (
+        Socket : Socket_Descriptor;
+        Buffer : Void_Ptr;
+        Length : Interfaces.C.size_t;
+        Flags : int
+    ) return ssize_t
+        with Import, Convention => C;
+
     function Image (Self : addrinfo) return String;
     function Image (Ptr : Socket_Address_Conversions.Object_Pointer) return String;
 

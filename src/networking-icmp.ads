@@ -106,6 +106,6 @@ package Networking.ICMP is
 
 	-- [[nodiscard]] addrinfo* current() const noexcept { return m_next; }
 
-    procedure Ping (Host : String);
+    procedure Ping (Host : String; Payload : String);
 
 end Networking.ICMP;

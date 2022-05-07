@@ -11,7 +11,7 @@ begin
          Host : constant String := Ada.Command_Line.Argument(Index);
       begin
          Ada.Text_IO.Put_Line(Host);
-         Networking.ICMP.Ping(Host);
+         Networking.ICMP.Ping(Host, "hello world");
       end;
    end loop;
 end Ping_Demo;

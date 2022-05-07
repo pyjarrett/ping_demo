@@ -81,6 +81,9 @@ package body Networking is
          Sum := (Sum and 16#FFFF#) + Interfaces.Shift_Right (Sum, 16);
       end loop;
 
+      -- TODO: Storing in 
+      Sum := Interfaces.Shift_Left(Sum and 16#FF#, 8) or Interfaces.Shift_Right(Sum and 16#FF00#, 8); 
+
       return not U16 (Sum);
    end Calculate_Checksum;
 
