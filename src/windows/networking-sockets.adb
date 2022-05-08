@@ -46,5 +46,6 @@ package body Networking.Sockets is
    end close;
 
    Instance : Networking.Winsock2.Singleton;
+   pragma Unreferenced (Instance);
 
 end Networking.Sockets;

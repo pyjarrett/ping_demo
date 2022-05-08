@@ -111,9 +111,7 @@ package Networking.Sockets is
         Hints  : addrinfo_ptr;
         Result : System.Address
     ) return Interfaces.C.Int
-        with Import, Convention => C;
-
-    pragma Import (Stdcall, getaddrinfo, "getaddrinfo");
+        with Import, Convention => Stdcall, External_Name => "getaddrinfo";
 
     subtype Socket_Descriptor is int;
     Invalid_Socket : constant Socket_Descriptor := -1;
@@ -131,10 +129,8 @@ package Networking.Sockets is
         Communication_Domain    : Protocol_Family;
         Communication_Semantics : Socket_Type;
         Protocol                : int
-    ) return Socket_Descriptor;
-        -- with Import, Convention => C;
-        
-    pragma Import (Stdcall, socket, "socket");
+    ) return Socket_Descriptor
+        with Import, Convention => C;
 
     subtype Connect_Status is int;
     Connect_Error   : constant Connect_Status := -1;

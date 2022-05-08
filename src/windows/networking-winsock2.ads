@@ -95,8 +95,8 @@ private
 	--     _Out_ LPWSADATA lpWSAData
 	--     );
 	-- #endif /* INCL_WINSOCK_API_PROTOTYPES */
-	function WSAStartup (wVersionRequested : WORD; lpWSAData : System.Address) return Interfaces.C.int;
-	pragma Import (Stdcall, WSAStartup, "WSAStartup");
+	function WSAStartup (wVersionRequested : WORD; lpWSAData : System.Address) return Interfaces.C.int
+			with Import, Convention => Stdcall, External_Name => "WSAStartup";
 	
 	-- WINSOCK_API_LINKAGE
 	-- int
@@ -104,8 +104,8 @@ private
 	-- WSACleanup(
 	--     void
 	--     );
-	function WSACleanup return Interfaces.C.int;
-	pragma Import (Stdcall, WSACleanup, "WSACleanup");
+	function WSACleanup return Interfaces.C.int
+		with Import, Convention => Stdcall, External_Name => "WSACleanup";
 
 	function Make_Word (High, Low : WORD) return WORD;
 

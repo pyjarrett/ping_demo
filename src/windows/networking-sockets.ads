@@ -122,8 +122,8 @@ package Networking.Sockets is
         Unused : Interfaces.C.Strings.chars_ptr;
         Hints  : addrinfo_ptr;
         Result : System.Address
-    ) return Interfaces.C.Int;
-    pragma Import (Stdcall, getaddrinfo, "getaddrinfo");
+    ) return Interfaces.C.Int
+        with Import, Convention => Stdcall, External_Name => "getaddrinfo";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
     -- typedef UINT_PTR        SOCKET;
@@ -149,8 +149,8 @@ package Networking.Sockets is
         Communication_Domain    : Protocol_Family;
         Communication_Semantics : Socket_Type;
         Protocol                : int
-    ) return Socket_Descriptor;        
-    pragma Import (Stdcall, socket, "socket");
+    ) return Socket_Descriptor
+        with Import, Convention => Stdcall, External_Name => "socket";
 
     subtype Connect_Status is int;
     Connect_Error   : constant Connect_Status := -1;
@@ -173,11 +173,11 @@ package Networking.Sockets is
         Socket         : Socket_Descriptor;
         Address        : System.Address;
         Address_Length : int
-    ) return Connect_Status;
-    pragma Import (Stdcall, connect, "connect");
+    ) return Connect_Status
+        with Import, Convention => Stdcall, External_Name => "connect";
 
-    function close (File_Descriptor : int) return int;
-    pragma Import (Stdcall, close, "close");
+    function close (File_Descriptor : int) return int
+        with Import, Convention => Stdcall, External_Name => "close";
 
     -- Hide the return value of close() when we don't need it.
     procedure close (File_Descriptor : int);
@@ -197,8 +197,8 @@ package Networking.Sockets is
         Buffer : Void_Ptr;
         Length : Interfaces.C.size_t;
         Flags  : int
-    ) return ssize_t;
-    pragma Import (Stdcall, send, "send");
+    ) return ssize_t
+        with Import, Convention => Stdcall, External_Name => "send";
 
     -- #include <sys/socket.h>
     -- ssize_t
@@ -208,8 +208,8 @@ package Networking.Sockets is
         Buffer : Void_Ptr;
         Length : Interfaces.C.size_t;
         Flags : int
-    ) return ssize_t;
-    pragma Import (Stdcall, recv, "recv");
+    ) return ssize_t
+        with Import, Convention => Stdcall, External_Name => "recv";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
     -- /*
@@ -272,8 +272,8 @@ package Networking.Sockets is
         Write_Sockets  : fd_set_ptr;
         Except_Sockets : fd_set_ptr;
         Timeout        : timeval_ptr
-        ) return Socket_Descriptor;
-    pragma Import (Stdcall, selectsocket, "Select");
+    ) return Socket_Descriptor
+        with Import, Convention => Stdcall, External_Name => "select";
 
     function Image (Self : addrinfo) return String;
     function Image (Ptr : Socket_Address_Conversions.Object_Pointer) return String;
