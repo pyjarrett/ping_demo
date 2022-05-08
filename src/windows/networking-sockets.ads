@@ -61,7 +61,7 @@ package Networking.Sockets is
     function connect (
         Socket         : Socket_Descriptor;
         Address        : System.Address;
-        Address_Length : int
+        Address_Length : socklen_t
     ) return Connect_Status
         with Import, Convention => Stdcall, External_Name => "connect";
 
