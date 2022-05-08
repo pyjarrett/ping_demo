@@ -87,15 +87,15 @@ project Ping_Demo is
       for Switches ("Ada") use ("-Es"); --  Symbolic traceback
    end Binder;
 
+   Extra_Linker_Switches := ();
+   case Platform is
+      when "linux"   => Extra_Linker_Switches := ();
+      when "macos"   => Extra_Linker_Switches := ();
+      when "windows" => Extra_Linker_Switches := ("-lwsock32", "-lws2_32");
+   end case;
+
    package Linker is
-   -- c:\users\paul\.config\alire\cache\dependencies\gnat_native_11.2.4_2f9c5d6d\bin\gcc.exe ping_demo.o b__ping_demo.o
-   -- D:\dev\ada\ping_demo\obj\networking.o D:\dev\ada\ping_demo\obj\networking-sockets.o D:\dev\ada\ping_demo\obj\networking-icmp.o
-   -- -LD:\dev\ada\ping_demo\obj\ -LD:\dev\ada\ping_demo\obj\
-   -- -LC:/users/paul/.config/alire/cache/dependencies/gnat_native_11.2.4_2f9c5d6d/lib/gcc/x86_64-w64-mingw32/11.2.0/adalib/
-   -- -static-libgcc C:/users/paul/.config/alire/cache/dependencies/gnat_native_11.2.4_2f9c5d6d/lib/gcc/x86_64-w64-mingw32/11.2.0/adalib/libgnat.a
-   -- -Wl,--stack=0x2000000 -o D:\dev\ada\ping_demo\bin\\ping_demo.exe
-      -- for Linker_Options use ("-lwsock32", "-lws2_32");
-      for Default_Switches ("Ada") use ("-lwsock32", "-lws2_32");
+      for Default_Switches ("Ada") use Extra_Linker_Switches;
    end Linker;
 
 end Ping_Demo;

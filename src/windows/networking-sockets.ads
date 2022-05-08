@@ -46,6 +46,8 @@ package Networking.Sockets is
     subtype sockaddr_ptr is Socket_Address_Conversions.Object_Pointer;
     pragma Assert(sockaddr_ptr'Size = 64);
 
+    subtype socklen_t is Interfaces.C.size_t;
+
     subtype addrinfo_ptr is System.Storage_Elements.Integer_Address;
     type ai_flags_t is mod 2 ** int'Size;
 
@@ -69,7 +71,7 @@ package Networking.Sockets is
 	    ai_family    : ai_flags_t          := 0;
 	 	ai_socktype  : Socket_Type         := 0;
         ai_protocol  : int                 := 0;
-        ai_addrlen   : Interfaces.C.size_t := 0;
+        ai_addrlen   : socklen_t := 0;
         ai_canonname : chars_ptr           := Interfaces.C.Strings.Null_Ptr;
         ai_addr      : System.Address      := System.Null_Address;
         ai_next      : System.Address      := System.Null_Address;

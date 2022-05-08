@@ -44,9 +44,7 @@ package Networking.Sockets is
     -- /usr/include/sys/_types/_socklen_t.h
     -- typedef __darwin_socklen_t      socklen_t;
     -- Mac
-    -- subtype socklen_t is int;
-
-    subtype socklen_t is Interfaces.C.size_t;
+    subtype socklen_t is int;
 
     -- /usr/include/arm/_types.h
     -- typedef __uint32_t              __darwin_socklen_t;     /* socklen_t (duh) */

@@ -10,8 +10,8 @@ package body Networking is
       -- #if _CRT_FUNCTIONS_REQUIRED
       --     _ACRTIMP int* __cdecl _errno(void);
       --     #define errno (*_errno())
-      function errno return System.Address
-         with Import, Convention => C, External_Name => "_errno";
+      -- function errno return System.Address
+      --    with Import, Convention => C, External_Name => "_errno";
          
          -- Mac
          -- __BEGIN_DECLS
@@ -19,6 +19,8 @@ package body Networking is
          -- #define errno (*__error())
          -- __END_DECLS
          -- External_Name => "__error";
+      function errno return System.Address
+         with Import, Convention => C, External_Name => "__error";
 
       --  char* strerror(int errnum);
       function strerror (errnum : int) return Interfaces.C.Strings.chars_ptr
