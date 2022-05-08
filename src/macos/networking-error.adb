@@ -2,21 +2,14 @@ package body Networking.Error is
 
    function Get_Errno_String return String
    is
-      -- errno.h
-      -- #if _CRT_FUNCTIONS_REQUIRED
-      --     _ACRTIMP int* __cdecl _errno(void);
-      --     #define errno (*_errno())
+      -- Mac
+      -- __BEGIN_DECLS
+      -- extern int * __error(void);
+      -- #define errno (*__error())
+      -- __END_DECLS
+      -- External_Name => "__error";
       function errno return System.Address
-         with Import, Convention => C, External_Name => "_errno";
-
-         -- Mac
-         -- __BEGIN_DECLS
-         -- extern int * __error(void);
-         -- #define errno (*__error())
-         -- __END_DECLS
-         -- External_Name => "__error";
-      -- function errno return System.Address
-      --    with Import, Convention => C, External_Name => "__error";
+         with Import, Convention => C, External_Name => "__error";
 
       --  char* strerror(int errnum);
       function strerror (errnum : int) return Interfaces.C.Strings.chars_ptr
