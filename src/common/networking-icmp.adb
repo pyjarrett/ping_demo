@@ -5,6 +5,7 @@ with System.Storage_Elements;
 
 with Networking.Error;
 with Networking.Sockets;  use Networking.Sockets;
+with Networking.Types;    use Networking.Types;
 
 package body Networking.ICMP is
     pragma Assertion_Policy(Check);
@@ -95,7 +96,7 @@ package body Networking.ICMP is
 
         declare
             Client_Socket : Socket_Descriptor := socket (
-                int(Address_Infos.ai_family),
+                Address_Infos.ai_family,
                 Address_Infos.ai_socktype,
                 Address_Infos.ai_protocol
             );

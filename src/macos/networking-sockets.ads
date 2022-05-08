@@ -39,7 +39,8 @@ package Networking.Sockets is
     pragma Assert(sockaddr_ptr'Size = 64);
 
     subtype addrinfo_ptr is System.Storage_Elements.Integer_Address;
-    type ai_flags_t is mod 2 ** int'Size;
+    subtype ai_flags_t is Protocol_Family
+    -- type ai_flags_t is mod 2 ** int'Size;
 
     -- /usr/include/sys/_types/_socklen_t.h
     -- typedef __darwin_socklen_t      socklen_t;
@@ -79,7 +80,7 @@ package Networking.Sockets is
     -- #define AF_UNIX         1               /* local to host (pipes) */
     -- #if !defined(_POSIX_C_SOURCE) || defined(_DARWIN_C_SOURCE)
     -- #define AF_LOCAL        AF_UNIX         /* backward compatibility */
-    AF_UNSPEC : constant ai_flags_t := 0;
+    AF_UNSPEC : constant Protocol_Family := 0;
 
     -- /usr/include/netinet/in.h
     -- #define IPPROTO_IP              0               /* dummy for IP */

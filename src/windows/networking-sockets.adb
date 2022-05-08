@@ -6,10 +6,10 @@ package body Networking.Sockets is
    function Image (Self : addrinfo) return String is
       use Ada.Characters.Latin_1;
    begin
-      return int'Image (Self.ai_flags) & LF
-         & " family:   " & ai_flags_t'Image (Self.ai_family) & LF
+      return ai_flags_t'Image (Self.ai_flags) & LF
+         & " family:   " & Protocol_Family'Image (Self.ai_family) & LF
          & " socktype: " & Socket_Type'Image (Self.ai_socktype) & LF
-         & " protocol: " & int'Image (Self.ai_protocol) & LF
+         & " protocol: " & Socket_Protocol'Image (Self.ai_protocol) & LF
          & " addrlen:  " & Interfaces.C.size_t'Image (Self.ai_addrlen) & LF
          & " address:  " & Image (Self.ai_addr) & LF
          & " next:     " & Image (Self.ai_next);
