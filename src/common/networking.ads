@@ -25,9 +25,6 @@ package Networking is
     type U8_Buffer is array (Positive range <>) of U8;
     type U16_Buffer is array (Positive range <>) of U16;
 
-    -- Convenience function for getting errno.
-    function Get_Errno_String return String;
-
     -- Convenience function for printing an address.
     function Image (Address : System.Address) return String is (System.Address_Image (Address));
     

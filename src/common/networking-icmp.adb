@@ -3,6 +3,7 @@ with Interfaces;
 with System.Address_To_Access_Conversions;
 with System.Storage_Elements;
 
+with Networking.Error;
 with Networking.Sockets;  use Networking.Sockets;
 
 package body Networking.ICMP is
@@ -84,7 +85,7 @@ package body Networking.ICMP is
             Address_Infos'Address) /= Success
         then
             Print_Error ("Unable to find address to look up");
-            Print_Error (Get_Errno_String);            
+            Print_Error (Networking.Error.Get_Errno_String);
             return;
         end if;
 
@@ -102,16 +103,17 @@ package body Networking.ICMP is
         begin
             if Client_Socket = Invalid_Socket then
                 Print_Error ("Unable to create socket.");
-                Print_Error (Get_Errno_String);
+                Print_Error (Networking.Error.Get_Errno_String);
                 return;
             else
                 TIO.Put_Line ("Created the send socket.");
             end if;
 
-            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
+            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr,
+                Interfaces.C.int (Address_Infos.ai_addrlen));
             if Connect_Result /= Connect_Success then
                 Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
-                Print_Error ("Socket Error: " & Get_Errno_String);
+                Print_Error ("Socket Error: " & Networking.Error.Get_Errno_String);
                 close (Client_Socket);
                 Client_Socket := Invalid_Socket;
                 return;
@@ -156,7 +158,7 @@ package body Networking.ICMP is
                 Print_Bytes (Echo_Request'Address, Echo_Request'Size / 8);
                 Send_Result := send (Client_Socket, Data, Interfaces.C.size_t (Send_Buffer_Size), Flags);
                 if Send_Result = Send_Error then
-                    Print_Error ("Unable to send.");
+                    Print_Error ("Unable to send."); 
                     Print_Error ("Are you sending as administrator?");
                 else
                     TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
