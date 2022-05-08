@@ -68,6 +68,7 @@ private
 	overriding procedure Initialize (Self : in out Singleton);
    overriding procedure Finalize   (Self : in out Singleton);
 
+	-- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
 	-- /*
 	--  * Establish DLL function linkage if supported by the current build
 	--  * environment and not previously defined.
@@ -98,6 +99,7 @@ private
 	function WSAStartup (wVersionRequested : WORD; lpWSAData : System.Address) return Interfaces.C.int
 			with Import, Convention => Stdcall, External_Name => "WSAStartup";
 	
+	-- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
 	-- WINSOCK_API_LINKAGE
 	-- int
 	-- WSAAPI
