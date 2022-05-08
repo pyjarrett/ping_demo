@@ -37,5 +37,7 @@ package Networking is
     
     function Calculate_Checksum (Buffer : U8_Buffer)
         return U16;
+
+    procedure Print_Bytes (Address : System.Address; Num_Bytes : Natural);
         
 end Networking;

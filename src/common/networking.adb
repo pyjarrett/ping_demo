@@ -1,3 +1,4 @@
+with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with System.Address_To_Access_Conversions;
 
@@ -93,5 +94,15 @@ package body Networking is
 
       return not U16 (Sum);
    end Calculate_Checksum;
+   
+    procedure Print_Bytes (Address : System.Address; Num_Bytes : Natural) is
+        type U8_Array is array (Positive range 1 .. Num_Bytes) of Interfaces.Unsigned_8;
+        Bytes : constant U8_Array with Import;
+        for Bytes'Address use Address;
+    begin
+        for Byte of Bytes loop
+            Ada.Text_IO.Put_Line (Byte'Image);
+        end loop;
+    end Print_Bytes;
 
 end Networking;

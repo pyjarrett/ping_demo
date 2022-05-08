@@ -13,8 +13,7 @@ package Networking.Sockets is
     -- #define SOCK_DGRAM      2
     -- #define SOCK_RAW        3
     -- #define SOCK_RDM        4
-    -- #define SOCK_SEQPACKET  5
-    
+    -- #define SOCK_SEQPACKET  5    
     subtype Socket_Type is int;
     SOCK_RAW : constant Socket_Type := 3;
 
@@ -122,7 +121,7 @@ package Networking.Sockets is
         Unused : Interfaces.C.Strings.chars_ptr;
         Hints  : addrinfo_ptr;
         Result : System.Address
-    ) return Interfaces.C.Int
+    ) return Interfaces.C.int
         with Import, Convention => Stdcall, External_Name => "getaddrinfo";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
@@ -249,7 +248,6 @@ package Networking.Sockets is
     --         long    tv_usec;        /* and microseconds */
     -- };
     --
-
     FD_SETSIZE : constant := 64;
     subtype u_int is Interfaces.C.unsigned;
     type Socket_Array is array (Positive range <>) of Socket_Descriptor;

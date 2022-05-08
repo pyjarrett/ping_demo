@@ -56,16 +56,6 @@ package body Networking.ICMP is
         TIO.Put_Line (Interfaces.Integer_64'Image (Empty'Size));
         pragma Assert (Empty'Size = 64);
     end Test_Sizes;
-
-    procedure Print_Bytes (Address : System.Address; Num_Bytes : Natural) is
-        type U8_Array is array (Positive range 1 .. Num_Bytes) of Interfaces.Unsigned_8;
-        Bytes : constant U8_Array with Import;
-        for Bytes'Address use Address;
-    begin
-        for Byte of Bytes loop
-            Ada.Text_IO.Put_Line (Byte'Image);
-        end loop;
-    end Print_Bytes;
     
     -- Pings a host, reporting status to the user.
     procedure Ping (
