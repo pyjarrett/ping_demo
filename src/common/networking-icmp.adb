@@ -84,8 +84,7 @@ package body Networking.ICMP is
             Address_Infos'Address) /= Success
         then
             Print_Error ("Unable to find address to look up");
-            Print_Error (Get_Errno_String);
-            
+            Print_Error (Get_Errno_String);            
             return;
         end if;
 
