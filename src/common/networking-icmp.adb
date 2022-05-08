@@ -119,7 +119,7 @@ package body Networking.ICMP is
                 TIO.Put_Line ("Created the send socket.");
             end if;
 
-            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
+            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, int (Address_Infos.ai_addrlen));
             if Connect_Result /= Connect_Success then
                 Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
                 Print_Error ("Socket Error: " & Get_Errno_String);

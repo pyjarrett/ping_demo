@@ -1,11 +1,21 @@
 with "config/ping_demo_config.gpr";
 project Ping_Demo is
 
-   for Source_Dirs use ("src");
    for Object_Dir use "obj";
    for Create_Missing_Dirs use "True";
    for Exec_Dir use "bin";
    for Main use ("ping_demo.adb");
+
+   Ping_Demo_Sources := ("src/", "src/common");
+   
+   type Platform_Type is ("windows", "linux", "macos");
+   Platform : Platform_Type := external ("Ping_Demo_Platform");
+   case Platform is
+      when "windows" => Ping_Demo_Sources := Ping_Demo_Sources & "src/windows";
+      when "linux"   => Ping_Demo_Sources := Ping_Demo_Sources & "src/linux";
+      when "macos"   => Ping_Demo_Sources := Ping_Demo_Sources & "src/macos";
+   end case;
+   for Source_Dirs use Ping_Demo_Sources;
 
    type Enabled_Kind is ("enabled", "disabled");
    Compile_Checks : Enabled_Kind := External ("PING_DEMO_COMPILE_CHECKS", "enabled");

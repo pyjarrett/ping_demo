@@ -19,7 +19,6 @@ package body Networking.Winsock2 is
    pragma Assert (Make_Word (1, 2) = 258);
    pragma Assert (Make_Word (2, 2) = 514);
 
-
    Success : constant := 0;
 
    overriding
@@ -41,7 +40,5 @@ package body Networking.Winsock2 is
          Self.Initialized := False;
       end if;
    end Finalize;
-
-	Instance : Singleton;
 
 end Networking.Winsock2;
