@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./bin/ping_demo.exe",
+            "arguments": "10.0.0.27",
+            "cwd": "${workspaceRoot}",
+            "valuesFormatting": "parseText",
+            "preLaunchTask": "ada: Build current project"
+        }
+    ]
+}
