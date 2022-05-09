@@ -1,9 +1,11 @@
 with Interfaces.C;
 with System.Address_To_Access_Conversions;
 
+-- The basic networking types to make the rest of the code go.
 package Networking.Types is
-   subtype Connect_Status is int;
    use type Interfaces.C.int;
+
+   subtype Connect_Status is int;
 
    Connect_Error   : constant Connect_Status := -1;
    Connect_Success : constant Connect_Status := 0;
@@ -120,6 +122,6 @@ package Networking.Types is
    -- #define	AI_CANONNAME	0x00000002 /* fill ai_canonname */
    -- #define	AI_NUMERICHOST	0x00000004 /* prevent host name resolution */
    -- #define	AI_NUMERICSERV	0x00001000 /* prevent service name resolution */
-   AI_PASSIVE   : constant := 16#00000001#;
-   AI_CANONNAME : constant := 16#00000002#;
+   AI_PASSIVE   : constant ai_flags_t := 16#00000001#;
+   AI_CANONNAME : constant ai_flags_t := 16#00000002#;
 end Networking.Types;
