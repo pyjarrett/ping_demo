@@ -67,14 +67,16 @@ package body Networking.ICMP is
         Host_CStr : aliased Interfaces.C.char_array := Interfaces.C.To_C (host);
         Hints     : constant addrinfo := Make_Hint_ICMP_V4;
 
-        use type Interfaces.C.Strings.chars_ptr;
         package Addrinfo_Conversions is new System.Address_To_Access_Conversions (Object => addrinfo);
 
         Address_Infos : Addrinfo_Conversions.Object_Pointer := null;
         Success : constant := 0;
+
+        Client_Socket : Socket_Descriptor;
+        Connect_Result : Connect_Status;
         
         use type int;
-        use type Interfaces.C.size_t;
+        use type Interfaces.C.Strings.chars_ptr;
     begin
         Test_Sizes;
 
@@ -90,104 +92,93 @@ package body Networking.ICMP is
             return;
         end if;
 
-        if Address_Infos.ai_canonname = Interfaces.C.Strings.Null_Ptr then
-            TIO.Put_Line ("Null canonical name string");
+        Client_Socket := socket (
+            Address_Infos.ai_family,
+            Address_Infos.ai_socktype,
+            Address_Infos.ai_protocol
+        );
+
+        if Client_Socket = Invalid_Socket then
+            Print_Error ("Unable to create socket.");
+            Print_Error (Networking.Error.Get_Errno_String);
+            return;
+        else
+            TIO.Put_Line ("Created the send socket.");
         end if;
 
+        Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
+        if Connect_Result /= Connect_Success then
+            Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
+            Print_Error ("Socket Error: " & Networking.Error.Get_Errno_String);
+            close (Client_Socket);
+            Client_Socket := Invalid_Socket;
+            return;
+        end if;
+
+        -- Build the packet, calculate the checksum and send.
         declare
-            Client_Socket : Socket_Descriptor := socket (
-                Address_Infos.ai_family,
-                Address_Infos.ai_socktype,
-                Address_Infos.ai_protocol
-            );
-            Connect_Result : Connect_Status;
+            use type System.Storage_Elements.Storage_Offset;
+            use type System.Address;
+
+            -- Underlying buffer for the send.
+            pragma Warnings(Off, "overlay changes scalar storage order");
+            Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
+                Echo_Request_Header'Size / 8 + Payload'Length;
+            Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
+
+            -- Map request and payload onto the buffer.
+            Echo_Request     : Echo_Request_Header with Import;
+            for Echo_Request'Address use Send_Buffer'Address;
+            pragma Warnings(On, "overlay changes scalar storage order");
+
+            Echo_Request_Payload : String (1 .. Payload'Length) with Import;
+            for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
+
+            -- Verify the request and payload are where we want.
+            pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
+            pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
+            Flags       : constant int := 0;
+            Send_Result : Send_Status := Send_Error;
         begin
-            if Client_Socket = Invalid_Socket then
-                Print_Error ("Unable to create socket.");
-                Print_Error (Networking.Error.Get_Errno_String);
-                return;
+            Echo_Request := (
+                Request_Type => 8,
+                Code => 0,
+                Checksum => 0, 
+                Identifier => 1,
+                Sequence_Num => 1);
+            Echo_Request_Payload := Payload;
+            Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
+            Send_Result := send (Client_Socket, Send_Buffer'Address, Interfaces.C.size_t (Send_Buffer_Size), Flags);
+            if Send_Result = Send_Error then
+                Print_Error ("Unable to send."); 
+                Print_Error ("Are you sending as administrator?");
             else
-                TIO.Put_Line ("Created the send socket.");
+                TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
             end if;
 
-            Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
-            if Connect_Result /= Connect_Success then
-                Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
-                Print_Error ("Socket Error: " & Networking.Error.Get_Errno_String);
-                close (Client_Socket);
-                Client_Socket := Invalid_Socket;
-                return;
-            end if;
-
-            -- Build the packet, calculate the checksum and send.
             declare
-                use System.Storage_Elements;
-                use type System.Storage_Elements.Storage_Offset;
-                use type System.Storage_Elements.Integer_Address;
-                use type System.Address;
-
-                -- Underlying buffer for the send.
                 pragma Warnings(Off, "overlay changes scalar storage order");
-                Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
-                    Echo_Request_Header'Size / 8 + Payload'Length;
-                Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
-
-                -- Map request and payload onto the buffer.
-                Echo_Request     : Echo_Request_Header with Import;
-                for Echo_Request'Address use Send_Buffer'Address;
+                Recv_Buffer_Size : constant := 1024;
+                Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
+                Echo_Receipt : Echo_request_Header with Import;
+                for Echo_Receipt'Address use Recv_Buffer'Address;
                 pragma Warnings(On, "overlay changes scalar storage order");
-
-                Echo_Request_Payload : String (1 .. Payload'Length);
-                for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
-
-                -- Verify the request and payload are where we want.
-                pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
-                pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
-                Data        : constant Void_Ptr := Send_Buffer'Address;
-                Flags       : constant int := 0;
-                Send_Result : Send_Status := Send_Error;
+                Recv_Result : ssize_t;
             begin
-                Echo_Request := (Request_Type => 8, Code => 0,
-                  Checksum => 0, 
-                  Identifier => 1,
-                  Sequence_Num => 1);
-                Print_Bytes (Echo_Request'Address, Echo_Request'Size / 8);
-                TIO.New_Line;
-                Echo_Request_Payload := Payload;
-                Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
-                Print_Bytes (Echo_Request'Address, Echo_Request'Size / 8);
-                Send_Result := send (Client_Socket, Data, Interfaces.C.size_t (Send_Buffer_Size), Flags);
-                if Send_Result = Send_Error then
-                    Print_Error ("Unable to send."); 
-                    Print_Error ("Are you sending as administrator?");
+                Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
+                if Recv_Result > 0 then
+                    declare
+                        Echo_Payload : String (1 ..
+                            Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
+                        for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
+                    begin
+                        TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
+                    end;
+                elsif Recv_Result = 0 then
+                    TIO.Put_Line ("Socket closed");
                 else
-                    TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
+                    TIO.Put_Line ("Socket error: " & Recv_Result'Image);
                 end if;
-
-                declare
-                    pragma Warnings(Off, "overlay changes scalar storage order");
-                    Recv_Buffer_Size : constant := 1024;
-                    Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
-                    Echo_Receipt : Echo_request_Header with Import;
-                    for Echo_Receipt'Address use Recv_Buffer'Address;
-                    pragma Warnings(On, "overlay changes scalar storage order");
-                    Recv_Result : ssize_t;
-                begin
-                    Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
-                    if Recv_Result > 0 then
-                        declare
-                            Echo_Payload : String (1 ..
-                                Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
-                            for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
-                        begin
-                            TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
-                        end;
-                    elsif Recv_Result = 0 then
-                        TIO.Put_Line ("Socket closed");
-                    else
-                        TIO.Put_Line ("Socket error: " & Recv_Result'Image);
-                    end if;
-                end;
             end;
         end;
 
