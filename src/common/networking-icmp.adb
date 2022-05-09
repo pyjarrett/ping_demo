@@ -104,38 +104,45 @@ package body Networking.ICMP is
         end if;
     end Send_Ping;
 
-    function Is_Socket_Ready (Client_Socket : Socket_Descriptor) return Boolean
-    is
-        Target       : fd_set;
-        -- Wait_Seconds : constant Interfaces.C.long := 5;
-        -- Wait_Time    : timeval := (tv_sec => Wait_Seconds, tv_usec => 0);
-        use type Interfaces.C.int;
-        Result       : Interfaces.C.int;
-        -- use type Interfaces.C.unsigned;
+    -- TODO: Unimplemented
+    function Is_Socket_Ready (Client_Socket : Socket_Descriptor) return Boolean is
     begin
-        Target.fd_count := 1;
-        Target.fd_array (Target.fd_array'First) := Client_Socket;
-        TIO.Put_Line ("timeval size: " & Integer'Image (Target'Size));
-        TIO.Put_Line ("Long size: "    & Integer'Image (Interfaces.C.long'Size));
-        pragma Assert (timeval'Size = 64);
-        Result := selectsocket (
-            Num_Sockets => Interfaces.C.int (Client_Socket) + 1,
-            Read_Sockets => Target'Address,
-            Write_Sockets => System.Null_Address,
-            Except_Sockets => System.Null_Address,
-            Timeout => System.Null_Address); -- Wait_Time'Address);
-
-        if Result = 0 then
-            TIO.Put_Line ("No sockets are ready.");
-            return False;
-        elsif Result > 0 then
-            TIO.Put_Line ("Sockets ready: " & Interfaces.C.int'Image (Result));
-            return True;
-        else
-            TIO.Put_Line ("Result didn't work: " & Networking.Error.Get_Errno_String);
-            return False;
-        end if;
+        pragma Unreferenced (Client_Socket);
+        return True;
     end Is_Socket_Ready;
+
+    -- function Is_Socket_Ready (Client_Socket : Socket_Descriptor) return Boolean
+    -- is
+    --     Target       : fd_set;
+    --     -- Wait_Seconds : constant Interfaces.C.long := 5;
+    --     -- Wait_Time    : timeval := (tv_sec => Wait_Seconds, tv_usec => 0);
+    --     use type Interfaces.C.int;
+    --     Result       : Interfaces.C.int;
+    --     -- use type Interfaces.C.unsigned;
+    -- begin
+    --     Target.fd_count := 1;
+    --     Target.fd_array (Target.fd_array'First) := Client_Socket;
+    --     TIO.Put_Line ("timeval size: " & Integer'Image (Target'Size));
+    --     TIO.Put_Line ("Long size: "    & Integer'Image (Interfaces.C.long'Size));
+    --     pragma Assert (timeval'Size = 64);
+    --     Result := selectsocket (
+    --         Num_Sockets => Interfaces.C.int (Client_Socket) + 1,
+    --         Read_Sockets => Target'Address,
+    --         Write_Sockets => System.Null_Address,
+    --         Except_Sockets => System.Null_Address,
+    --         Timeout => System.Null_Address); -- Wait_Time'Address);
+
+    --     if Result = 0 then
+    --         TIO.Put_Line ("No sockets are ready.");
+    --         return False;
+    --     elsif Result > 0 then
+    --         TIO.Put_Line ("Sockets ready: " & Interfaces.C.int'Image (Result));
+    --         return True;
+    --     else
+    --         TIO.Put_Line ("Result didn't work: " & Networking.Error.Get_Errno_String);
+    --         return False;
+    --     end if;
+    -- end Is_Socket_Ready;
 
     -- Receives data off of a socket.
     procedure Receive_Ping (

@@ -1,3 +1,5 @@
+with System.Address_To_Access_Conversions;
+
 package body Networking.Error is
 
    function Get_Errno_String return String
