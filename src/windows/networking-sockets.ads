@@ -144,8 +144,9 @@ package Networking.Sockets is
 
     type fd_set is record
         fd_count : u_int;
-        fd_array : Socket_Array (1 .. FD_SETSIZE);
-    end record;
+        fd_array : Socket_Array (1 .. FD_SETSIZE) with Convention => C;
+    end record
+        with Convention => C;
 
     subtype fd_set_ptr is System.Address;
     type timeval is record
@@ -155,7 +156,8 @@ package Networking.Sockets is
     subtype timeval_ptr is System.Address;
 
     -- Can't call this "select" since that is a keyword.
-    function selectsocket (Num_Sockets : Interfaces.C.int;
+    function selectsocket (
+        Num_Sockets : Interfaces.C.int;
         Read_Sockets   : fd_set_ptr;
         Write_Sockets  : fd_set_ptr;
         Except_Sockets : fd_set_ptr;

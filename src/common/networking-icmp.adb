@@ -68,23 +68,23 @@ package body Networking.ICMP is
 
         -- Underlying buffer for the send.
         pragma Warnings(Off, "overlay changes scalar storage order");
-        Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
+        Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
             Echo_Request_Header'Size / 8 + Payload'Length;
-        Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
+        Buffer      : System.Storage_Elements.Storage_Array (1 .. Buffer_Size);
 
         -- Map request and payload onto the buffer.
         Echo_Request     : Echo_Request_Header with Import;
-        for Echo_Request'Address use Send_Buffer'Address;
+        for Echo_Request'Address use Buffer'Address;
         pragma Warnings(On, "overlay changes scalar storage order");
 
         Echo_Request_Payload : String (1 .. Payload'Length) with Import;
-        for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
+        for Echo_Request_Payload'Address use Buffer'Address + Echo_Request'Size / 8;
 
         -- Verify the request and payload are where we want.
         pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
         pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
-        Flags       : constant int := 0;
-        Send_Result : Send_Status := Send_Error;
+        Flags  : constant int := 0;
+        Result : Send_Status := Send_Error;
     begin
         -- Build the packet, calculate the checksum and send.
         Echo_Request := (
@@ -94,42 +94,76 @@ package body Networking.ICMP is
             Identifier => 1,
             Sequence_Num => 1);
         Echo_Request_Payload := Payload;
-        Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
-        Send_Result := send (Client_Socket, Send_Buffer'Address, Interfaces.C.size_t (Send_Buffer_Size), Flags);
-        if Send_Result = Send_Error then
+        Echo_Request.Checksum := Networking.Calculate_Checksum (Buffer (1 .. Buffer_Size));
+        Result := send (Client_Socket, Buffer'Address, Interfaces.C.size_t (Buffer_Size), Flags);
+        if Result = Send_Error then
             Print_Error ("Unable to send.");
             Print_Error ("Are you sending as administrator?");
         else
-            TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
+            TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Result));
         end if;
     end Send_Ping;
 
+    function Is_Socket_Ready (Client_Socket : Socket_Descriptor) return Boolean
+    is
+        Target       : fd_set;
+        -- Wait_Seconds : constant Interfaces.C.long := 5;
+        -- Wait_Time    : timeval := (tv_sec => Wait_Seconds, tv_usec => 0);
+        use type Interfaces.C.int;
+        Result       : Interfaces.C.int;
+        -- use type Interfaces.C.unsigned;
+    begin
+        Target.fd_count := 1;
+        Target.fd_array (Target.fd_array'First) := Client_Socket;
+        TIO.Put_Line ("timeval size: " & Integer'Image (Target'Size));
+        TIO.Put_Line ("Long size: "    & Integer'Image (Interfaces.C.long'Size));
+        pragma Assert (timeval'Size = 64);
+        Result := selectsocket (
+            Num_Sockets => Interfaces.C.int (Client_Socket) + 1,
+            Read_Sockets => Target'Address,
+            Write_Sockets => System.Null_Address,
+            Except_Sockets => System.Null_Address,
+            Timeout => System.Null_Address); -- Wait_Time'Address);
+
+        if Result = 0 then
+            TIO.Put_Line ("No sockets are ready.");
+            return False;
+        elsif Result > 0 then
+            TIO.Put_Line ("Sockets ready: " & Interfaces.C.int'Image (Result));
+            return True;
+        else
+            TIO.Put_Line ("Result didn't work: " & Networking.Error.Get_Errno_String);
+            return False;
+        end if;
+    end Is_Socket_Ready;
+
+    -- Receives data off of a socket.
     procedure Receive_Ping (
-        Client_Socket : Socket_Descriptor
+        Socket : Socket_Descriptor
     ) is
         use type System.Storage_Elements.Storage_Offset;
 
         pragma Warnings(Off, "overlay changes scalar storage order");
-        Recv_Buffer_Size : constant := 1024;
-        Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
+        Buffer_Size : constant := 1024;
+        Buffer : System.Storage_Elements.Storage_Array (1 .. Buffer_Size);
         Echo_Receipt : Echo_request_Header with Import;
-        for Echo_Receipt'Address use Recv_Buffer'Address;
+        for Echo_Receipt'Address use Buffer'Address;
         pragma Warnings(On, "overlay changes scalar storage order");
-        Recv_Result : ssize_t;
+        Result : ssize_t;
     begin
-        Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
-        if Recv_Result > 0 then
+        Result := recv (Socket, Buffer'Address, Buffer_Size, 0);
+        if Result > 0 then
             declare
                 Echo_Payload : String (1 .. 
-                    Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
-                for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
+                    Integer (Result) - Echo_Request_Header'Size / 8) with Import;
+                for Echo_Payload'Address use Buffer'Address + Echo_Request_Header'Size / 8;
             begin
-                TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
+                TIO.Put_Line ("Received: " & Result'Image & " bytes " & Echo_Payload);
             end;
-        elsif Recv_Result = 0 then
+        elsif Result = 0 then
             TIO.Put_Line ("Socket closed");
         else
-            TIO.Put_Line ("Socket error: " & Recv_Result'Image);
+            TIO.Put_Line ("Socket error: " & Result'Image);
         end if;
     end Receive_Ping;
 
@@ -191,6 +225,14 @@ package body Networking.ICMP is
         end if;
 
         Send_Ping (Client_Socket, Payload);
+        
+        if Is_Socket_Ready (Client_Socket) then
+            TIO.Put_Line ("Socket is ready.");
+        else
+            TIO.Put_Line ("Socket is not ready.");
+            return;
+        end if;
+
         Receive_Ping (Client_Socket);
 
         TIO.Put_Line ("Pinging: " & Host);
