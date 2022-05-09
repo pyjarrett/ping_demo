@@ -33,9 +33,9 @@ package body Networking.ICMP is
         Request_Type : Interfaces.Unsigned_8 := 8; -- Echo Reply
         Code         : Interfaces.Unsigned_8 := 0;
 
-	    -- "The checksum is the 16-bit one's complement of the one's
-	    -- complement sum of the ICMP message starting with the ICMP Type."
-	    -- - RFC 792
+        -- "The checksum is the 16-bit one's complement of the one's
+        -- complement sum of the ICMP message starting with the ICMP Type."
+        -- - RFC 792
         Checksum     : Interfaces.Unsigned_16 := 0;
         Identifier   : Interfaces.Unsigned_16 := 0;
         Sequence_Num : Interfaces.Unsigned_16 := 0;
@@ -58,7 +58,81 @@ package body Networking.ICMP is
         TIO.Put_Line (Interfaces.Integer_64'Image (Empty'Size));
         pragma Assert (Empty'Size = 64);
     end Test_Sizes;
-    
+
+    procedure Send_Ping (
+        Client_Socket : Socket_Descriptor;
+        Payload       : String
+    ) is
+        use type System.Storage_Elements.Storage_Offset;
+        use type System.Address;
+
+        -- Underlying buffer for the send.
+        pragma Warnings(Off, "overlay changes scalar storage order");
+        Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
+            Echo_Request_Header'Size / 8 + Payload'Length;
+        Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
+
+        -- Map request and payload onto the buffer.
+        Echo_Request     : Echo_Request_Header with Import;
+        for Echo_Request'Address use Send_Buffer'Address;
+        pragma Warnings(On, "overlay changes scalar storage order");
+
+        Echo_Request_Payload : String (1 .. Payload'Length) with Import;
+        for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
+
+        -- Verify the request and payload are where we want.
+        pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
+        pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
+        Flags       : constant int := 0;
+        Send_Result : Send_Status := Send_Error;
+    begin
+        -- Build the packet, calculate the checksum and send.
+        Echo_Request := (
+            Request_Type => 8,
+            Code => 0,
+            Checksum => 0, 
+            Identifier => 1,
+            Sequence_Num => 1);
+        Echo_Request_Payload := Payload;
+        Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
+        Send_Result := send (Client_Socket, Send_Buffer'Address, Interfaces.C.size_t (Send_Buffer_Size), Flags);
+        if Send_Result = Send_Error then
+            Print_Error ("Unable to send.");
+            Print_Error ("Are you sending as administrator?");
+        else
+            TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
+        end if;
+    end Send_Ping;
+
+    procedure Receive_Ping (
+        Client_Socket : Socket_Descriptor
+    ) is
+        use type System.Storage_Elements.Storage_Offset;
+
+        pragma Warnings(Off, "overlay changes scalar storage order");
+        Recv_Buffer_Size : constant := 1024;
+        Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
+        Echo_Receipt : Echo_request_Header with Import;
+        for Echo_Receipt'Address use Recv_Buffer'Address;
+        pragma Warnings(On, "overlay changes scalar storage order");
+        Recv_Result : ssize_t;
+    begin
+        Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
+        if Recv_Result > 0 then
+            declare
+                Echo_Payload : String (1 .. 
+                    Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
+                for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
+            begin
+                TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
+            end;
+        elsif Recv_Result = 0 then
+            TIO.Put_Line ("Socket closed");
+        else
+            TIO.Put_Line ("Socket error: " & Recv_Result'Image);
+        end if;
+    end Receive_Ping;
+
     -- Pings a host, reporting status to the user.
     procedure Ping (
         Host    : String;
@@ -77,6 +151,7 @@ package body Networking.ICMP is
         
         use type int;
         use type Interfaces.C.Strings.chars_ptr;
+
     begin
         Test_Sizes;
 
@@ -115,72 +190,8 @@ package body Networking.ICMP is
             return;
         end if;
 
-        -- Build the packet, calculate the checksum and send.
-        declare
-            use type System.Storage_Elements.Storage_Offset;
-            use type System.Address;
-
-            -- Underlying buffer for the send.
-            pragma Warnings(Off, "overlay changes scalar storage order");
-            Send_Buffer_Size : constant System.Storage_Elements.Storage_Offset :=
-                Echo_Request_Header'Size / 8 + Payload'Length;
-            Send_Buffer      : System.Storage_Elements.Storage_Array (1 .. Send_Buffer_Size);
-
-            -- Map request and payload onto the buffer.
-            Echo_Request     : Echo_Request_Header with Import;
-            for Echo_Request'Address use Send_Buffer'Address;
-            pragma Warnings(On, "overlay changes scalar storage order");
-
-            Echo_Request_Payload : String (1 .. Payload'Length) with Import;
-            for Echo_Request_Payload'Address use Send_Buffer'Address + Echo_Request'Size / 8;
-
-            -- Verify the request and payload are where we want.
-            pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
-            pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
-            Flags       : constant int := 0;
-            Send_Result : Send_Status := Send_Error;
-        begin
-            Echo_Request := (
-                Request_Type => 8,
-                Code => 0,
-                Checksum => 0, 
-                Identifier => 1,
-                Sequence_Num => 1);
-            Echo_Request_Payload := Payload;
-            Echo_Request.Checksum := Networking.Calculate_Checksum (Send_Buffer (1 .. Send_Buffer_Size));
-            Send_Result := send (Client_Socket, Send_Buffer'Address, Interfaces.C.size_t (Send_Buffer_Size), Flags);
-            if Send_Result = Send_Error then
-                Print_Error ("Unable to send."); 
-                Print_Error ("Are you sending as administrator?");
-            else
-                TIO.Put_Line ("Wrote bytes: " & Send_Status'Image (Send_Result));
-            end if;
-
-            declare
-                pragma Warnings(Off, "overlay changes scalar storage order");
-                Recv_Buffer_Size : constant := 1024;
-                Recv_Buffer : System.Storage_Elements.Storage_Array (1 .. Recv_Buffer_Size);
-                Echo_Receipt : Echo_request_Header with Import;
-                for Echo_Receipt'Address use Recv_Buffer'Address;
-                pragma Warnings(On, "overlay changes scalar storage order");
-                Recv_Result : ssize_t;
-            begin
-                Recv_Result := recv (Client_Socket, Recv_Buffer'Address, Recv_Buffer_Size, 0);
-                if Recv_Result > 0 then
-                    declare
-                        Echo_Payload : String (1 ..
-                            Integer (Recv_Result) - Echo_Request_Header'Size / 8) with Import;
-                        for Echo_Payload'Address use Recv_Buffer'Address + Echo_Request_Header'Size / 8;
-                    begin
-                        TIO.Put_Line ("Received: " & Recv_Result'Image & " bytes " & Echo_Payload);
-                    end;
-                elsif Recv_Result = 0 then
-                    TIO.Put_Line ("Socket closed");
-                else
-                    TIO.Put_Line ("Socket error: " & Recv_Result'Image);
-                end if;
-            end;
-        end;
+        Send_Ping (Client_Socket, Payload);
+        Receive_Ping (Client_Socket);
 
         TIO.Put_Line ("Pinging: " & Host);
         TIO.Put_Line (Integer'Image(Hints'Size));
