@@ -4,6 +4,7 @@ with System.Address_To_Access_Conversions;
 -- The basic networking types to make the rest of the code go.
 package Networking.Types is
    use type Interfaces.C.int;
+   use type Interfaces.Unsigned_64;
 
    subtype Connect_Status is int;
 
@@ -14,9 +15,11 @@ package Networking.Types is
    Send_Error   : constant Send_Status := -1;
    Send_Success : constant Send_Status := 0;
 
+   -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\shared\basetsd.h
+   --  typedef unsigned __int64 UINT_PTR, *PUINT_PTR;
    -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
    -- typedef UINT_PTR        SOCKET;
-   subtype Socket_Descriptor is int;
+   subtype Socket_Descriptor is Interfaces.Unsigned_64;
    Invalid_Socket : constant Socket_Descriptor := -1;
 
    type Socket_Protocol is new int;
@@ -124,4 +127,33 @@ package Networking.Types is
    -- #define	AI_NUMERICSERV	0x00001000 /* prevent service name resolution */
    AI_PASSIVE   : constant ai_flags_t := 16#00000001#;
    AI_CANONNAME : constant ai_flags_t := 16#00000002#;
+
+   -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
+   -- #define POLLRDNORM  0x0100
+   -- #define POLLRDBAND  0x0200
+   -- #define POLLIN      (POLLRDNORM | POLLRDBAND)
+   -- #define POLLPRI     0x0400
+
+   -- #define POLLWRNORM  0x0010
+   -- #define POLLOUT     (POLLWRNORM)
+   -- #define POLLWRBAND  0x0020
+
+   -- #define POLLERR     0x0001
+   -- #define POLLHUP     0x0002
+   -- #define POLLNVAL    0x0004
+   type Poll_Events is mod 2 ** Interfaces.C.short'Size;
+
+   POLLRDNORM  : constant Poll_Events := 16#0100#;
+   POLLRDBAND  : constant Poll_Events := 16#0200#;
+   POLLIN      : constant Poll_Events := (POLLRDNORM or POLLRDBAND);
+   POLLPRI     : constant Poll_Events := 16#0400#;
+
+   POLLWRNORM  : constant Poll_Events := 16#0010#;
+   POLLOUT     : constant Poll_Events := (POLLWRNORM);
+   POLLWRBAND  : constant Poll_Events := 16#0020#;
+
+   POLLERR     : constant Poll_Events := 16#0001#;
+   POLLHUP     : constant Poll_Events := 16#0002#;
+   POLLNVAL    : constant Poll_Events := 16#0004#;
+   
 end Networking.Types;

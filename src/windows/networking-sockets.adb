@@ -38,7 +38,7 @@ package body Networking.Sockets is
    end Image;
 
    -- Hide the return value of close() when we don't need it.
-   procedure close (File_Descriptor : int) is
+   procedure close (File_Descriptor : Socket_Descriptor) is
       Unused : int;
    begin
       pragma Unreferenced (Unused);

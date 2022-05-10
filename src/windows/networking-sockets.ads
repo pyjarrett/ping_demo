@@ -65,7 +65,7 @@ package Networking.Sockets is
     ) return Connect_Status
         with Import, Convention => Stdcall, External_Name => "connect";
 
-    function close (File_Descriptor : int) return int
+    function close (File_Descriptor : Socket_Descriptor) return int
         with Import, Convention => Stdcall, External_Name => "close";
 
     -- Hide the return value of close() when we don't need it.
@@ -89,9 +89,18 @@ package Networking.Sockets is
     ) return ssize_t
         with Import, Convention => Stdcall, External_Name => "send";
 
-    -- #include <sys/socket.h>
-    -- ssize_t
-    -- recv(int socket, void *buffer, size_t length, int flags);
+    -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
+    -- #if INCL_WINSOCK_API_PROTOTYPES
+    -- WINSOCK_API_LINKAGE
+    -- int
+    -- WSAAPI
+    -- recv(
+    --     _In_ SOCKET s,
+    --     _Out_writes_bytes_to_(len, return) __out_data_source(NETWORK) char FAR * buf,
+    --     _In_ int len,
+    --     _In_ int flags
+    --     );
+    -- #endif /* INCL_WINSOCK_API_PROTOTYPES */
     function recv (
         Socket : Socket_Descriptor;
         Buffer : Void_Ptr;
@@ -101,69 +110,44 @@ package Networking.Sockets is
         with Import, Convention => Stdcall, External_Name => "recv";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
-    -- /*
-    --  * Select uses arrays of SOCKETs.  These macros manipulate such
-    --  * arrays.  FD_SETSIZE may be defined by the user before including
-    --  * this file, but the default here should be >= 64.
-    --  *
-    --  * CAVEAT IMPLEMENTOR and USER: THESE MACROS AND TYPES MUST BE
-    --  * INCLUDED IN WINSOCK2.H EXACTLY AS SHOWN HERE.
-    --  */
-    -- #ifndef FD_SETSIZE
-    -- #define FD_SETSIZE      64
-    -- #endif /* FD_SETSIZE */
-    --
-    -- typedef unsigned int    u_int;
-    -- typedef struct fd_set {
-    --         u_int fd_count;               /* how many are SET? */
-    --         SOCKET  fd_array[FD_SETSIZE];   /* an array of SOCKETs */
-    -- } fd_set;
+    -- typedef struct pollfd {
+    --     SOCKET  fd;
+    --     SHORT   events;
+    --     SHORT   revents;
+    -- } WSAPOLLFD, *PWSAPOLLFD, FAR *LPWSAPOLLFD;
+    type pollfd is record
+        fd      : Socket_Descriptor;
+        events  : Poll_Events;
+        revents : Poll_Events;
+    end record
+        with Convention => C;
+    type pollfd_array is array (Positive range <>) of pollfd with Convention => C;
 
+    -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\shared\minwindef.h
+    -- typedef unsigned long ULONG;
+    -- typedef int                 INT;
+
+    -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
+    -- #if(_WIN32_WINNT >= 0x0600)
+    -- #if INCL_WINSOCK_API_PROTOTYPES
     -- WINSOCK_API_LINKAGE
     -- int
     -- WSAAPI
-    -- select(
-    --     _In_ int nfds,
-    --     _Inout_opt_ fd_set FAR * readfds,
-    --     _Inout_opt_ fd_set FAR * writefds,
-    --     _Inout_opt_ fd_set FAR * exceptfds,
-    --     _In_opt_ const struct timeval FAR * timeout
+    -- WSAPoll(
+    --     _Inout_ LPWSAPOLLFD fdArray,
+    --     _In_ ULONG fds,
+    --     _In_ INT timeout
     --     );
-    --
-    -- /*
-    --  * Structure used in select() call, taken from the BSD file sys/time.h.
-    --  */
-    -- struct timeval {
-    --         long    tv_sec;         /* seconds */
-    --         long    tv_usec;        /* and microseconds */
-    -- };
-    --
-    FD_SETSIZE : constant := 64;
-    subtype u_int is Interfaces.C.unsigned;
-    type Socket_Array is array (Positive range <>) of Socket_Descriptor;
+    -- #endif /* INCL_WINSOCK_API_PROTOTYPES */
+    -- #endif // (_WIN32_WINNT >= 0x0600)
+    type Num_FDs is new Interfaces.C.unsigned_long;
 
-    type fd_set is record
-        fd_count : u_int;
-        fd_array : Socket_Array (1 .. FD_SETSIZE) with Convention => C;
-    end record
-        with Convention => C;
-
-    subtype fd_set_ptr is System.Address;
-    type timeval is record
-        tv_sec  : Interfaces.C.long;
-        tv_usec : Interfaces.C.long;
-    end record;
-    subtype timeval_ptr is System.Address;
-
-    -- Can't call this "select" since that is a keyword.
-    function selectsocket (
-        Num_Sockets : Interfaces.C.int;
-        Read_Sockets   : fd_set_ptr;
-        Write_Sockets  : fd_set_ptr;
-        Except_Sockets : fd_set_ptr;
-        Timeout        : timeval_ptr
-    ) return Socket_Descriptor
-        with Import, Convention => Stdcall, External_Name => "select";
+    function poll (
+        fd_array             : in out pollfd_array;
+        fds                  : Num_FDs;
+        Timeout_Milliseconds : Interfaces.C.int
+    ) return Interfaces.C.int
+        with Import, Convention => Stdcall, External_Name => "WSAPoll";
 
     function Image (Self : addrinfo) return String;
     function Image (Ptr : Socket_Address_Conversions.Object_Pointer) return String;

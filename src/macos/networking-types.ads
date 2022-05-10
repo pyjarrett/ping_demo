@@ -158,7 +158,6 @@ package Networking.Types is
    POLLHUP    : constant Poll_Events := 16#0010#;
    POLLNVAL   : constant Poll_Events := 16#0020#;
 
-   -- use type Poll_Events;
    POLLSTANDARD : constant Poll_Events := POLLIN or POLLPRI or POLLOUT
       or POLLRDNORM or POLLRDBAND or POLLWRBAND or POLLERR or POLLHUP
       or POLLNVAL;

@@ -92,13 +92,13 @@ package Networking.Sockets is
 
    -- /usr/include/sys/poll.h
    -- typedef unsigned int nfds_t;
-   type nfds_t is new Interfaces.C.unsigned;
+   type Num_FDs is new Interfaces.C.unsigned;
 
    -- /usr/include/sys/poll.h
    --  int poll(struct pollfd fds[], nfds_t nfds, int timeout);
    function poll (
       fds     : in out pollfd_array;
-      nfds    : nfds_t;
+      nfds    : Num_FDs;
       timeout : Interfaces.C.int
    ) return Interfaces.C.int
       with Import, Convention => C;
