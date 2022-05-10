@@ -88,7 +88,6 @@ package Networking.Types is
    end record
       with Convention => C;
 
-
    -- /usr/include/sys/socket.h
    -- #define AF_UNSPEC       0               /* unspecified */
    -- #define AF_UNIX         1               /* local to host (pipes) */
@@ -105,11 +104,63 @@ package Networking.Types is
    IPPROTO_IP   : constant Socket_Protocol := 0;
    IPPROTO_ICMP : constant Socket_Protocol := 1;
 
-   
     -- #define	AI_PASSIVE	0x00000001 /* get address to use bind() */
     -- #define	AI_CANONNAME	0x00000002 /* fill ai_canonname */
     -- #define	AI_NUMERICHOST	0x00000004 /* prevent host name resolution */
     -- #define	AI_NUMERICSERV	0x00001000 /* prevent service name resolution */
    AI_PASSIVE   : constant ai_flags_t := 16#00000001#;
    AI_CANONNAME : constant ai_flags_t := 16#00000002#;
+
+   -- /usr/include/sys/poll.h
+   -- #define POLLIN          0x0001          /* any readable data available */
+   -- #define POLLPRI         0x0002          /* OOB/Urgent readable data */
+   -- #define POLLOUT         0x0004          /* file descriptor is writeable */
+   -- #define POLLRDNORM      0x0040          /* non-OOB/URG data available */
+   -- #define POLLWRNORM      POLLOUT         /* no write type differentiation */
+   -- #define POLLRDBAND      0x0080          /* OOB/Urgent readable data */
+   -- #define POLLWRBAND      0x0100          /* OOB/Urgent data can be written */
+
+   -- /*
+   --  * FreeBSD extensions: polling on a regular file might return one
+   --  * of these events (currently only supported on local filesystems).
+   --  */
+   -- #define POLLEXTEND      0x0200          /* file may have been extended */
+   -- #define POLLATTRIB      0x0400          /* file attributes may have changed */
+   -- #define POLLNLINK       0x0800          /* (un)link/rename may have happened */
+   -- #define POLLWRITE       0x1000          /* file's contents may have changed */
+
+   -- /*
+   --  * These events are set if they occur regardless of whether they were
+   --  * requested.
+   --  */
+   -- #define POLLERR         0x0008          /* some poll error occurred */
+   -- #define POLLHUP         0x0010          /* file descriptor was "hung up" */
+   -- #define POLLNVAL        0x0020          /* requested events "invalid" */
+   --
+   -- #define POLLSTANDARD    (POLLIN|POLLPRI|POLLOUT|POLLRDNORM|POLLRDBAND|\
+   --                          POLLWRBAND|POLLERR|POLLHUP|POLLNVAL)
+   type Poll_Events is mod 2**Interfaces.C.short'size;
+
+   POLLIN     : constant Poll_Events := 16#0001#;
+   POLLPRI    : constant Poll_Events := 16#0002#;
+   POLLOUT    : constant Poll_Events := 16#0004#;
+   POLLRDNORM : constant Poll_Events := 16#0040#;
+   POLLWRNORM : constant Poll_Events := POLLOUT;
+   POLLRDBAND : constant Poll_Events := 16#0080#;
+   POLLWRBAND : constant Poll_Events := 16#0100#;
+
+   POLLEXTEND : constant Poll_Events := 16#0200#;
+   POLLATTRIB : constant Poll_Events := 16#0400#;
+   POLLNLINK  : constant Poll_Events := 16#0800#;
+   POLLWRITE  : constant Poll_Events := 16#1000#;
+
+   POLLERR    : constant Poll_Events := 16#0008#;
+   POLLHUP    : constant Poll_Events := 16#0010#;
+   POLLNVAL   : constant Poll_Events := 16#0020#;
+
+   -- use type Poll_Events;
+   POLLSTANDARD : constant Poll_Events := POLLIN or POLLPRI or POLLOUT
+      or POLLRDNORM or POLLRDBAND or POLLWRBAND or POLLERR or POLLHUP
+      or POLLNVAL;
+
 end Networking.Types;
