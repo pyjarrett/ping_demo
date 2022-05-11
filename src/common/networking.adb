@@ -69,9 +69,11 @@ package body Networking is
         type U8_Array is array (Positive range 1 .. Num_Bytes) of Interfaces.Unsigned_8;
         Bytes : constant U8_Array with Import;
         for Bytes'Address use Address;
+        package BIO is new Ada.Text_IO.Modular_IO (Interfaces.Unsigned_8);
     begin
         for Byte of Bytes loop
-            Ada.Text_IO.Put_Line (Byte'Image);
+            BIO.Put (Item => Byte, Base => 16);
+            Ada.Text_IO.New_Line;
         end loop;
     end Print_Bytes;
 

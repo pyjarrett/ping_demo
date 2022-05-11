@@ -106,7 +106,7 @@ package Networking.Sockets is
         Buffer : Void_Ptr;
         Length : Interfaces.C.size_t;
         Flags : int
-    ) return ssize_t
+    ) return int
         with Import, Convention => Stdcall, External_Name => "recv";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h

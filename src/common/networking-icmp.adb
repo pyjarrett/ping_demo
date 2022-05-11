@@ -95,6 +95,7 @@ package body Networking.ICMP is
          Sequence_Num => 1);
       Echo_Request_Payload := Payload;
       Echo_Request.Checksum := Networking.Calculate_Checksum (Buffer (1 .. Buffer_Size));
+      TIO.put_Line ("Checksum: " & Interfaces.Unsigned_16'Image (Echo_Request.Checksum));
       Result := send (Client_Socket, Buffer'Address, Interfaces.C.size_t (Buffer_Size), Flags);
       if Result = Send_Error then
          Print_Error ("Unable to send.");
@@ -106,26 +107,37 @@ package body Networking.ICMP is
 
    -- Receives data off of a socket.
    procedure Receive_Ping (
-      Socket : Socket_Descriptor
+      Socket           : Socket_Descriptor;
+      Expected_Payload : String
    ) is
+      pragma Unreferenced (Expected_Payload);
+
       use type System.Storage_Elements.Storage_Offset;
+      use type int;
 
       pragma Warnings(Off, "overlay changes scalar storage order");
       Buffer_Size : constant := 1024;
       Buffer : System.Storage_Elements.Storage_Array (1 .. Buffer_Size);
-      Echo_Receipt : Echo_request_Header with Import;
-      for Echo_Receipt'Address use Buffer'Address;
+      IP_Header    : IPv4_Header with Import;
+      Echo_Receipt : Echo_Request_Header with Import;
+      for IP_Header'Address use Buffer'Address;
+      for Echo_Receipt'Address use IP_Header'Address + IP_Header'Size / 8;
       pragma Warnings(On, "overlay changes scalar storage order");
-      Result : ssize_t;
+      Result : int;
    begin
       Result := recv (Socket, Buffer'Address, Buffer_Size, 0);
       if Result > 0 then
          declare
             Echo_Payload : String (1 .. 
-               Integer (Result) - Echo_Request_Header'Size / 8) with Import;
-            for Echo_Payload'Address use Buffer'Address + Echo_Request_Header'Size / 8;
+               Integer (Result) - IP_Header'Size / 8 - Echo_Request_Header'Size / 8) with Import;
+            for Echo_Payload'Address use Echo_Receipt'Address + Echo_Request_Header'Size / 8;
          begin
             TIO.Put_Line ("Received: " & Result'Image & " bytes " & Echo_Payload);
+            -- Print_Bytes (Buffer'Address, Integer (Result));
+            -- TIO.New_Line;
+            -- Print_Bytes (Echo_Receipt'Address, Integer (Result) - IP_Header'Size / 8);
+            -- TIO.New_Line;
+            -- Print_Bytes (Echo_Payload'Address, Integer (Result) - IP_Header'Size / 8 - Echo_Receipt'Size / 8);
          end;
       elsif Result = 0 then
          TIO.Put_Line ("Socket closed");
@@ -210,7 +222,7 @@ package body Networking.ICMP is
          return;
       end if;
 
-      Receive_Ping (Client_Socket);
+      Receive_Ping (Client_Socket, Payload);
 
       TIO.Put_Line ("Pinging: " & Host);
       TIO.Put_Line (Integer'Image(Hints'Size));
