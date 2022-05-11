@@ -91,7 +91,7 @@ project Ping_Demo is
    case Platform is
       when "linux"   => Extra_Linker_Switches := ();
       when "macos"   => Extra_Linker_Switches := ();
-      when "windows" => Extra_Linker_Switches := ("-lwsock32", "-lws2_32");
+      when "windows" => Extra_Linker_Switches := ("-lws2_32");
    end case;
 
    package Linker is
