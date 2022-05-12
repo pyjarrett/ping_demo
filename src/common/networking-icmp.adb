@@ -133,11 +133,6 @@ package body Networking.ICMP is
             for Echo_Payload'Address use Echo_Receipt'Address + Echo_Request_Header'Size / 8;
          begin
             TIO.Put_Line ("Received: " & Result'Image & " bytes " & Echo_Payload);
-            -- Print_Bytes (Buffer'Address, Integer (Result));
-            -- TIO.New_Line;
-            -- Print_Bytes (Echo_Receipt'Address, Integer (Result) - IP_Header'Size / 8);
-            -- TIO.New_Line;
-            -- Print_Bytes (Echo_Payload'Address, Integer (Result) - IP_Header'Size / 8 - Echo_Receipt'Size / 8);
          end;
       elsif Result = 0 then
          TIO.Put_Line ("Socket closed");
