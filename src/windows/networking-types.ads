@@ -11,7 +11,7 @@ package Networking.Types is
    Connect_Error   : constant Connect_Status := -1;
    Connect_Success : constant Connect_Status := 0;
 
-   subtype Send_Status is ssize_t;
+   subtype Send_Status is int;
    Send_Error   : constant Send_Status := -1;
    Send_Success : constant Send_Status := 0;
 

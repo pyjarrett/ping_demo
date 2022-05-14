@@ -60,7 +60,7 @@ package body Networking is
       end loop;
 
       -- TODO: Storing in 
-      Sum := Interfaces.Shift_Left(Sum and 16#FF#, 8) or Interfaces.Shift_Right(Sum and 16#FF00#, 8); 
+      Sum := Interfaces.Shift_Left(Sum and 16#FF#, 8) or (Interfaces.Shift_Right(Sum and 16#FF00#, 8) and 16#FF#);
 
       return not U16 (Sum);
    end Calculate_Checksum;

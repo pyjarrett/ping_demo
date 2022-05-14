@@ -59,12 +59,16 @@ package body Networking.ICMP is
       pragma Assert (Empty'Size = 64);
    end Test_Sizes;
 
+   --
+   --
    procedure Send_Ping (
       Client_Socket : Socket_Descriptor;
       Payload       : String
    ) is
       use type System.Storage_Elements.Storage_Offset;
       use type System.Address;
+      use type int;
+
 
       -- Underlying buffer for the send.
       pragma Warnings(Off, "overlay changes scalar storage order");
@@ -78,11 +82,11 @@ package body Networking.ICMP is
       pragma Warnings(On, "overlay changes scalar storage order");
 
       Echo_Request_Payload : String (1 .. Payload'Length) with Import;
-      for Echo_Request_Payload'Address use Buffer'Address + Echo_Request'Size / 8;
+      for Echo_Request_Payload'Address use Buffer'Address + Echo_Request_Header'Size / 8;
 
       -- Verify the request and payload are where we want.
       pragma Assert(not Echo_Request'Overlaps_Storage(Echo_Request_Payload));
-      pragma Assert(Echo_Request'Address + Echo_Request'Size / 8 = Echo_Request_Payload'Address);
+      pragma Assert(Echo_Request'Address + Echo_Request_Header'Size / 8 = Echo_Request_Payload'Address);
       Flags  : constant int := 0;
       Result : Send_Status := Send_Error;
    begin
@@ -95,8 +99,9 @@ package body Networking.ICMP is
          Sequence_Num => 1);
       Echo_Request_Payload := Payload;
       Echo_Request.Checksum := Networking.Calculate_Checksum (Buffer (1 .. Buffer_Size));
-      TIO.put_Line ("Checksum: " & Interfaces.Unsigned_16'Image (Echo_Request.Checksum));
-      Result := send (Client_Socket, Buffer'Address, Interfaces.C.size_t (Buffer_Size), Flags);
+      TIO.Put_Line ("Checksum: " & Interfaces.Unsigned_16'Image (Echo_Request.Checksum));
+
+      Result := send (Client_Socket, Buffer'Address, Interfaces.C.int (Buffer_Size), Flags);
       if Result = Send_Error then
          Print_Error ("Unable to send.");
          Print_Error ("Are you sending as administrator?");
@@ -198,7 +203,7 @@ package body Networking.ICMP is
          TIO.Put_Line ("Created the send socket.");
       end if;
 
-      Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Address_Infos.ai_addrlen);
+      Connect_Result := connect (Client_Socket, Address_Infos.ai_addr, Interfaces.C.int (Address_Infos.ai_addrlen));
       if Connect_Result /= Connect_Success then
          Print_Error ("Unable to connect to socket:" & Connect_Status'Image (Connect_Result));
          Print_Error ("Socket Error: " & Networking.Error.Get_Errno_String);

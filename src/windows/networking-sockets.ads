@@ -61,7 +61,7 @@ package Networking.Sockets is
     function connect (
         Socket         : Socket_Descriptor;
         Address        : System.Address;
-        Address_Length : socklen_t
+        Address_Length : int
     ) return Connect_Status
         with Import, Convention => Stdcall, External_Name => "connect";
 
@@ -84,9 +84,9 @@ package Networking.Sockets is
     function send (
         Socket : Socket_Descriptor;
         Buffer : Void_Ptr;
-        Length : Interfaces.C.size_t;
+        Length : int;
         Flags  : int
-    ) return ssize_t
+    ) return int
         with Import, Convention => Stdcall, External_Name => "send";
 
     -- C:\Program Files (x86)\Windows Kits\10\Include\10.0.20348.0\um\WinSock2.h
@@ -104,7 +104,7 @@ package Networking.Sockets is
     function recv (
         Socket : Socket_Descriptor;
         Buffer : Void_Ptr;
-        Length : Interfaces.C.size_t;
+        Length : int;
         Flags : int
     ) return int
         with Import, Convention => Stdcall, External_Name => "recv";
