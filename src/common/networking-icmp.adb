@@ -98,7 +98,10 @@ package body Networking.ICMP is
          Identifier => 1,
          Sequence_Num => 1);
       Echo_Request_Payload := Payload;
-      Echo_Request.Checksum := Networking.Calculate_Checksum (Buffer (1 .. Buffer_Size));
+
+      -- Need to swap endianness since we're calculating the checksum in big
+      -- endian space and when stored, it's going to be swapped by the structure.
+      Echo_Request.Checksum := Swap_Endianness (Networking.Calculate_Checksum (Buffer (1 .. Buffer_Size)));
       TIO.Put_Line ("Checksum: " & Interfaces.Unsigned_16'Image (Echo_Request.Checksum));
 
       Result := send (Client_Socket, Buffer'Address, Interfaces.C.int (Buffer_Size), Flags);

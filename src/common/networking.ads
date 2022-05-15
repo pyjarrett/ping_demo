@@ -27,13 +27,15 @@ package Networking is
 
     -- Convenience function for printing an address.
     function Image (Address : System.Address) return String is (System.Address_Image (Address));
-    
+
     function Calculate_Checksum (Buffer : System.Storage_Elements.Storage_Array)
         return U16
         with Inline;
     
     function Calculate_Checksum (Buffer : U8_Buffer)
         return U16;
+
+    function Swap_Endianness (U : U16) return U16;
     
     type Unsigned_2 is mod 2 ** 2;
     type Unsigned_3 is mod 2 ** 3;
@@ -75,5 +77,18 @@ package Networking is
     for IPv4_Header'Scalar_Storage_Order use System.High_Order_First;
 
     procedure Print_Bytes (Address : System.Address; Num_Bytes : Natural);
+
+   -- Returns the padded hexadecimal representation of a U16, with the
+   -- high end bytes printed first.
+   --
+   --   Byte 2      Byte 1
+   -- 0000 0000   0000 0000
+   --
+   -- Each nibble is a character and requires a number of shifts to the right
+   -- 3, 2, 1, 0
+   -- 
+   -- Indexing into a string gives us the character.
+   function As_Hex (U : U16) return String;
+   function As_Hex (U : U32) return String;
         
 end Networking;

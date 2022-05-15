@@ -1,16 +1,12 @@
 with Ada.Command_Line;
-with Ada.Text_IO;
 
 with Networking.ICMP;
 
 procedure Ping_Demo is
 begin
-   for Index in 1 .. Ada.Command_Line.Argument_Count loop
-      declare
-         Host : constant String := Ada.Command_Line.Argument(Index);
-      begin
-         Ada.Text_IO.Put_Line(Host);
-         Networking.ICMP.Ping(Host, "ab");
-      end;
-   end loop;
+   if Ada.Command_Line.Argument_Count = 1 then
+      Networking.ICMP.Ping (Ada.Command_Line.Argument (1), "");
+   elsif Ada.Command_Line.Argument_Count = 2 then
+      Networking.ICMP.Ping (Ada.Command_Line.Argument (1), Ada.Command_Line.Argument (2));
+   end if;
 end Ping_Demo;

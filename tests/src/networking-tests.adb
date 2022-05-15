@@ -29,7 +29,7 @@ package body Networking.Tests is
             16#f6#, 16#f7#
          );
       begin
-         Assert_EQ (Op, not U16 (16#ddf2#), Networking.Calculate_Checksum (RFC1071_Example));
+         Assert_EQ (Op, not U16 (16#f2dd#), Networking.Calculate_Checksum (RFC1071_Example));
       end;
 
       declare
@@ -40,20 +40,21 @@ package body Networking.Tests is
             16#00#, 16#15#  -- sequence number
          );
       begin
-         Assert_EQ (Op, U16 (16#f7e9#), Networking.Calculate_Checksum (Empty_Packet));
+         Ada.Text_IO.Put_Line (Networking.As_Hex (U16 (16#abcd#)));
+         Assert_EQ (Op, U16 (16#e8f7#), Networking.Calculate_Checksum (Empty_Packet));
       end;
 
       declare
-         Bad_Checksum : constant Networking.U8_Buffer := (
+         Checksum_Bug : constant Networking.U8_Buffer := (
             16#08#, 16#00#, -- type, code
             16#00#, 16#00#, -- checksum
             16#00#, 16#01#, -- ID
-            16#00#, 16#18#, -- sequence number
-            16#61#, 16#62#  -- data
+            16#00#, 16#01#, -- sequence number
+            16#61#, 16#62# -- data
          );
       begin
-         Ada.Text_IO.Put_Line (U16'Image (Networking.Calculate_Checksum (Bad_Checksum)));
-         Assert_EQ (Op, U16 (16#9686#), Networking.Calculate_Checksum (Bad_Checksum));
+         Ada.Text_IO.Put_Line (U16'Image (Networking.Calculate_Checksum (Checksum_Bug)));
+         Assert_EQ (Op, U16 (16#9b96#), Networking.Calculate_Checksum (Checksum_Bug));
       end;
       
    end Checksum_Test;
