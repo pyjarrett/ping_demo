@@ -97,48 +97,42 @@ package body Networking is
    function As_Hex (U : U16) return String
    is
       use type U16;
-      type Nibble_Index is new Natural range 1 .. (U16'Size / 4);
-      type Nibble is mod 2 ** 4;
-      pragma Assert (Nibble'First = 0);
-      pragma Assert (Nibble'Last = 15);
-      pragma Assert (Nibble_Index'First = 1);
-      pragma Assert (Nibble_Index'Last = 4);
+      subtype Nibble_Index is Positive range 1 .. (U16'Size / 4);
+      subtype Nibble is U16 range 0 .. 15;
 
       function Get_Nibble (U : U16; Index : Nibble_Index) return Nibble
-         is (Nibble (Interfaces.Shift_Right (U, Natural ((Nibble_Index'Last - Index) * 4)) and 16#F#));
+         is (Nibble (Interfaces.Shift_Right (U, Natural ((Nibble_Index'Last - Index) * 4)) and 16#F#))         
+         with Inline;
 
       pragma Assert (Get_Nibble (16#abcd#, 1) = 16#a#);
       pragma Assert (Get_Nibble (16#abcd#, 2) = 16#b#);
       pragma Assert (Get_Nibble (16#abcd#, 3) = 16#c#);
       pragma Assert (Get_Nibble (16#abcd#, 4) = 16#d#);
-         
-      Result : String (1 .. Integer (Nibble_Index'Last)) := (others => '0');
-      Chars : constant String (1 .. Positive (Nibble'Last) + 1) := "0123456789abcdef";      
+
+      Chars : constant array (Nibble) of Character := "0123456789abcdef";
    begin
-      for Index in Nibble_Index'Range loop
-         Result (Integer (Index)) := Chars (Positive (Natural (Get_Nibble (U, Index)) + 1));
-      end loop;
-      return Result;
+      return Result : String (1 .. Positive (Nibble_Index'Last)) := (others => '0') do
+         for Index in Nibble_Index'Range loop
+            Result (Index) := Chars (Get_Nibble (U, Index));
+         end loop;
+      end return;
    end As_Hex;
 
    function As_Hex (U : U32) return String
    is
       use type U32;
-      type Nibble_Index is new Natural range 1 .. (U32'Size / 4);
-      type Nibble is mod 2 ** 4;
-      pragma Assert (Nibble'First = 0);
-      pragma Assert (Nibble'Last = 15);
-      pragma Assert (Nibble_Index'First = 1);
-      pragma Assert (Nibble_Index'Last = 8);
+      subtype Nibble_Index is Positive range 1 .. (U32'Size / 4);
+      subtype Nibble is U32 range 0 .. 15;
 
       function Get_Nibble (U : U32; Index : Nibble_Index) return Nibble
-         is (Nibble (Interfaces.Shift_Right (U, Natural ((Nibble_Index'Last - Index) * 4)) and 16#F#));
+         is (Nibble (Interfaces.Shift_Right (U, Natural ((Nibble_Index'Last - Index) * 4)) and 16#F#))
+         with Inline;
 
       Result : String (1 .. Integer (Nibble_Index'Last)) := (others => '0');
-      Chars : constant String (1 .. Positive (Nibble'Last) + 1) := "0123456789abcdef"; 
+      Chars : constant array (Nibble) of Character := "0123456789abcdef";
    begin
       for Index in Nibble_Index'Range loop
-         Result (Integer (Index)) := Chars (Positive (Natural (Get_Nibble (U, Index)) + 1));
+         Result (Index) := Chars (Get_Nibble (U, Index));
       end loop;
       return Result;
    end As_Hex;

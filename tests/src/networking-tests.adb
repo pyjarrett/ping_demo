@@ -33,18 +33,6 @@ package body Networking.Tests is
       end;
 
       declare
-         Empty_Packet : constant Networking.U8_Buffer := (
-            16#08#, 16#00#, -- type, code
-            16#00#, 16#00#, -- checksum
-            16#00#, 16#01#, -- ID
-            16#00#, 16#15#  -- sequence number
-         );
-      begin
-         Ada.Text_IO.Put_Line (Networking.As_Hex (U16 (16#abcd#)));
-         Assert_EQ (Op, U16 (16#e8f7#), Networking.Calculate_Checksum (Empty_Packet));
-      end;
-
-      declare
          Checksum_Bug : constant Networking.U8_Buffer := (
             16#08#, 16#00#, -- type, code
             16#00#, 16#00#, -- checksum
